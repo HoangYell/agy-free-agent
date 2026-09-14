@@ -592,8 +592,13 @@ if [[ -n "${X_AUTH_TOKEN:-}" ]]; then
   echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}X / Twitter:${RESET}     ${GREEN}Configured${RESET} ${SLATE}(post-to-x ready)${RESET}"
 fi
 echo ""
+USER_SHELL_RC="~/.bashrc"
+if [[ "${SHELL:-}" == *"zsh"* ]]; then
+  USER_SHELL_RC="~/.zshrc"
+fi
+
 echo -e "  ${SLATE}───────────────────────────────────────────────────────────────────${RESET}"
-echo -e "  ${BOLD}To start pair-programming with your agent right now, run:${RESET}"
-echo -e "  ${BOLD}${CYAN}➜ agy1${RESET}"
+echo -e "  ${BOLD}To activate your shell environment and launch your agent right now, run:${RESET}"
+echo -e "  ${BOLD}${CYAN}➜ source ${USER_SHELL_RC} && agy1${RESET}  ${SLATE}(or: exec \$SHELL)${RESET}"
 echo -e "  ${SLATE}───────────────────────────────────────────────────────────────────${RESET}"
 echo ""

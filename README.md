@@ -147,8 +147,9 @@ nano .env   # (or use your editor: code .env / cursor .env)
 ---
 
 ### Step 3: Start Pair-Programming!
-Launch your primary agent:
+Activate your shell environment and launch your primary agent:
 ```bash
+source ~/.bashrc   # (or: source ~/.zshrc if using zsh)
 agy1
 ```
 * **First launch**: Click the Google sign-in URL in your terminal to authenticate your primary account.
