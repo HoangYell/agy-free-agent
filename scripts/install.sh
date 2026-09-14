@@ -55,8 +55,9 @@ echo "[*] Linking CLI tools into ${BIN_DIR}..."
 ln -sf "${ROOT_DIR}/bin/agy-setup" "${BIN_DIR}/agy-setup"
 ln -sf "${ROOT_DIR}/bin/q" "${BIN_DIR}/q"
 ln -sf "${ROOT_DIR}/bin/cleanroom-guard" "${BIN_DIR}/cleanroom-guard"
+ln -sf "${ROOT_DIR}/bin/agy-clean-logs" "${BIN_DIR}/agy-clean-logs"
 
-chmod +x "${ROOT_DIR}/bin/agy-setup" "${ROOT_DIR}/bin/q" "${ROOT_DIR}/bin/cleanroom-guard"
+chmod +x "${ROOT_DIR}/bin/agy-setup" "${ROOT_DIR}/bin/q" "${ROOT_DIR}/bin/cleanroom-guard" "${ROOT_DIR}/bin/agy-clean-logs" "${ROOT_DIR}/scripts/clean-logs.sh"
 
 # Ensure ~/.local/bin is in PATH
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then

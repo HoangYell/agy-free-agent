@@ -122,7 +122,71 @@ Each command generates an isolated launcher (`agy2`, `agy3`) and pre-configures 
 | **`agy2`**, **`agy3`**, **`agy<N>`** | Launch an isolated session for Google Account `<N>`. |
 | **`agy-setup <N>`** | Provision and configure a new isolated profile for account `<N>`. |
 | **`q`** | Check live quota status, OAuth session validity, and running PIDs across all accounts. |
+| **`agy-clean-logs`** | Prune stale session logs (>7 days) and vacuum journalctl storage. |
 | **`cleanroom-guard`** | Audit staged git files for potential secret, token, or private key leaks. |
+
+---
+
+## 🧠 Memory Architecture: The Multi-Tier Brain
+
+Unlike stateless chat wrappers that wake up with amnesia every morning, or tools that compress your memory into tiny 2,000-character text snippets, **AgyFreeAgent** employs a **4-tier persistent memory hierarchy**:
+
+```mermaid
+flowchart TD
+    subgraph Memory["AgyFreeAgent Multi-Tier Memory"]
+        T1["Tier 1: Global Identity & Rules<br/><code>~/GEMINI.md</code> (Permanent DNA)"]
+        T2["Tier 2: Project Directives<br/><code>&lt;repo&gt;/AGENTS.md</code> (Context & Stack)"]
+        T3["Tier 3: Evolving Skill Memory<br/><code>~/.agents/skills/</code> (Procedural Knowledge)"]
+        T4["Tier 4: Deep Session Forensics<br/><code>brain/</code> & <code>SQLite</code> (Full Transcripts)"]
+    end
+
+    Agent["Autonomous Agent Session"] --> T1
+    Agent --> T2
+    Agent --> T3
+    Agent --> T4
+```
+
+1. **Tier 1: Global Identity & Core Guidelines (`~/GEMINI.md`)**:
+   * Injected into every session across all profiles.
+   * Encodes your persona, preferred coding standards, engineering principles, and forbidden patterns. Never compressed or lost.
+2. **Tier 2: Project-Scoped Directives (`AGENTS.md` / `GEMINI.md`)**:
+   * Placed in the root of any repository under `~/workspaces/<project>/`.
+   * Tells the agent the exact architecture, database schemas, test commands, and styling conventions for that specific codebase.
+3. **Tier 3: Evolving Procedural Skill Memory (`~/.agents/skills/`)**:
+   * When the agent resolves a complex multi-step challenge (e.g. configuring a new build pipeline, Dockerizing a complex stack), it codifies the verified recipe into a skill.
+   * Written in standardized Technical English with executable scripts and templates. Shared automatically across all profiles (`agy1`..`agyn`).
+4. **Tier 4: Deep Session Forensics & Transcripts (`brain/`)**:
+   * Every command executed, reasoning chain, and tool step is recorded in compact `transcript.jsonl` files and indexed in SQLite (`conversation_summaries.db`).
+   * The agent can query past sessions to retrieve previous design decisions, historical outputs, and debugging trajectories.
+
+---
+
+## 🪵 Log Management & Host Hygiene
+
+Running an autonomous agent 24/7 generates command outputs, background task logs, and browser caches. AgyFreeAgent organizes and manages logs cleanly:
+
+### Log Layout
+* **Session Runtime Logs**: `~/.gemini-profiles/acc<N>/antigravity-cli/log/*.log` (debug logs and OAuth events).
+* **Background Task Logs**: `<brain>/<conv-id>/.system_generated/tasks/task-*.log` (stdout/stderr of asynchronous terminal tasks).
+* **Scheduled Ops Logs**: `~/.ops/logs/` (cronjob and timer execution output).
+
+### Automated Log Pruning (`agy-clean-logs`)
+To prevent logs and caches from bloating your disk, run:
+```bash
+agy-clean-logs
+```
+* Prunes session logs older than 7 days (customizable via `RETENTION_DAYS=14 agy-clean-logs`).
+* Vacuums Linux `journalctl` user logs to under 200MB.
+* Flushes dead Chromium renderers and temporary build artifacts from `/tmp`.
+
+### Automated Daily Maintenance (Systemd)
+Enable the automated daily cleanup timer (runs every night at 03:00):
+```bash
+mkdir -p ~/.config/systemd/user/
+cp templates/systemd/agy-cleanup.* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now agy-cleanup.timer
+```
 
 ---
 
