@@ -474,6 +474,25 @@ flowchart TD
 
 ---
 
+### 💡 "Want Anything Installed? Just Tell It." (Zero-Manual-Labor SysAdmin)
+
+Because AgyFreeAgent combines **passwordless sudo**, **YOLO auto-approval**, and **native bash execution**, you never have to Google "how to install X on Linux" or wrestle with broken dependencies again.
+
+**Just prompt your agent in natural language:**
+
+| What You Want | What You Type to `agy1` | What The Agent Does Autonomously |
+| :--- | :--- | :--- |
+| **Docker & Compose** | `"Install Docker and Docker Compose, enable on boot, and add my user to the docker group so I don't need sudo."` | Runs `apt-get install docker.io docker-compose-plugin`, executes `usermod -aG docker $USER`, and verifies with `docker run hello-world`. |
+| **Databases & Cache** | `"Install PostgreSQL 16 and Redis, enable systemd services, and create database 'app_dev' with user 'postgres'."` | Installs packages, configures `systemctl enable --now postgresql redis-server`, creates DB & grants user permissions. |
+| **Runtimes & Compilers** | `"Install Rust via rustup, Go 1.23, and Node.js 22 LTS with pnpm. Export environment variables to my ~/.bashrc."` | Downloads rustup, pulls official Go tarball, sets up Node LTS, configures `$PATH` in `~/.bashrc`. |
+| **Local AI Models** | `"Install Ollama as a background service and pull 'qwen2.5-coder:7b' for local code completions."` | Runs `curl -fsSL https://ollama.com/install.sh \| sh`, verifies daemon, and executes `ollama pull qwen2.5-coder:7b`. |
+| **Developer CLI Arsenal** | `"Install ripgrep, fd-find, jq, tmux, and htop. Make sure 'fd' is linked."` | Installs essential tools, symlinks `fdfind` to `~/.local/bin/fd`, and tests all binaries. |
+| **Cloud Tunnels** | `"Install Cloudflare cloudflared and configure a systemd service to tunnel localhost:3000."` | Downloads Debian package, sets up tunnel configuration, and creates a systemd service unit. |
+
+> 💡 **The Golden Rule**: If it can be run in a Linux terminal, your agent can install, configure, and daemonize it for you. Stop doing manual DevOps—let your agent build its own workshop.
+
+---
+
 ## ⚡ Advanced Host Superpowers: Beyond Pure Software
 
 Most coding agents are captive inside cloud sandboxes or limited to text terminals. Because **AgyFreeAgent** is anchored directly into your Linux host with root administrative powers, it unlocks capabilities no cloud agent can match:
