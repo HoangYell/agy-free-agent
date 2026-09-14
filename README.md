@@ -90,8 +90,11 @@ Follow these simple steps to get your autonomous engineering swarm up and runnin
 
 ### 📋 Prerequisites (What You Need)
 1. **Operating System**: Linux (Ubuntu 20.04+, Debian, Fedora, Arch) or **Windows WSL2** (Ubuntu).
-2. **Google Account**: At least 1 personal or workspace Google account. No credit cards needed.
-3. **Google Antigravity CLI (`agy`)**: If you don't have it yet, install it from [antigravity.google.com](https://antigravity.google.com) or copy the binary to `~/.local/bin/agy`.
+2. **Google Account**: At least 1 Google account (Gmail or Workspace). No credit cards or billing setup needed.
+3. **Google Antigravity CLI (`agy`)**:
+   * Install via npm: `npm install -g @google/antigravity-cli`
+   * Or get the official binary from [antigravity.google](https://antigravity.google) and place `agy` in `~/.local/bin/agy`.
+4. **Node.js**: Recommended for the live quota inspector (`q`). (Run `sudo apt install -y nodejs`).
 
 ---
 

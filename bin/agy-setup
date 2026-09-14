@@ -9,7 +9,9 @@ set -euo pipefail
 
 BIN_DIR="${HOME}/.local/bin"
 PROFILES_BASE="${HOME}/.gemini-profiles"
-TEMPLATES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../templates" && pwd)"
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "${SCRIPT_PATH}")"
+TEMPLATES_DIR="$(cd "${SCRIPT_DIR}/../templates" 2>/dev/null && pwd)"
 
 mkdir -p "${BIN_DIR}"
 mkdir -p "${HOME}/workspaces"

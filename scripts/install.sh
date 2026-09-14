@@ -6,7 +6,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "${SCRIPT_PATH}")"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BIN_DIR="${HOME}/.local/bin"
 PROFILES_BASE="${HOME}/.gemini-profiles"
@@ -45,21 +46,44 @@ else
   echo "[!] Warning: bwrap could not be verified. Multi-profile may fail without bwrap."
 fi
 
-# 3. Check agy binary
+# 3. Check Node.js and jq
+echo "[*] Checking runtime dependencies (Node.js & jq)..."
+if command -v node &>/dev/null; then
+  echo "[✓] Node.js is installed ($(node -v))."
+else
+  echo "[!] Notice: 'node' (Node.js) is recommended for quota telemetry ('q')."
+  echo "    Install via: sudo apt install -y nodejs (or https://nodejs.org)."
+fi
+
+if ! command -v jq &>/dev/null; then
+  if command -v apt-get &>/dev/null; then
+    sudo apt-get install -y jq 2>/dev/null || true
+  elif command -v dnf &>/dev/null; then
+    sudo dnf install -y jq 2>/dev/null || true
+  fi
+fi
+
+# 4. Check agy binary
 echo "[*] Checking Google Antigravity CLI (agy)..."
 if command -v agy &>/dev/null || [[ -x "${BIN_DIR}/agy" ]]; then
   echo "[✓] 'agy' CLI binary detected."
 else
   echo "[!] Notice: 'agy' command not found in PATH or ${BIN_DIR}."
-  echo "    Get Antigravity CLI from https://antigravity.google.com or copy 'agy' to ~/.local/bin/agy."
+  echo "    Get Antigravity CLI from https://antigravity.google or copy 'agy' to ~/.local/bin/agy."
 fi
 
-# 4. Create target directories
+# 5. Create target directories
 mkdir -p "${BIN_DIR}"
 mkdir -p "${PROFILES_BASE}"
 mkdir -p "${WORKSPACES_DIR}"
 
-# 4. Link CLI tools into ~/.local/bin
+# 6. Initialize .env from .env.example
+if [[ ! -f "${ROOT_DIR}/.env" && -f "${ROOT_DIR}/.env.example" ]]; then
+  cp "${ROOT_DIR}/.env.example" "${ROOT_DIR}/.env"
+  echo "[✓] Initialized .env template."
+fi
+
+# 7. Link CLI tools into ~/.local/bin
 echo "[*] Linking CLI tools into ${BIN_DIR}..."
 ln -sf "${ROOT_DIR}/bin/agy-setup" "${BIN_DIR}/agy-setup"
 ln -sf "${ROOT_DIR}/bin/q" "${BIN_DIR}/q"
@@ -69,13 +93,21 @@ ln -sf "${ROOT_DIR}/bin/telegram-notify" "${BIN_DIR}/telegram-notify"
 
 chmod +x "${ROOT_DIR}/bin/agy-setup" "${ROOT_DIR}/bin/q" "${ROOT_DIR}/bin/cleanroom-guard" "${ROOT_DIR}/bin/agy-clean-logs" "${ROOT_DIR}/bin/telegram-notify" "${ROOT_DIR}/scripts/clean-logs.sh" "${ROOT_DIR}/scripts/telegram-notify.sh"
 
-# Ensure ~/.local/bin is in PATH
+# 8. Ensure ~/.local/bin is in PATH automatically
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-  echo "[!] Tip: Add ~/.local/bin to your PATH in ~/.bashrc or ~/.zshrc:"
-  echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+  echo "[*] Configuring ~/.local/bin in shell configuration..."
+  if [[ -f "${HOME}/.bashrc" ]] && ! grep -q 'export PATH=.*\.local/bin' "${HOME}/.bashrc"; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "${HOME}/.bashrc"
+    echo "[✓] Added to ~/.bashrc"
+  fi
+  if [[ -f "${HOME}/.zshrc" ]] && ! grep -q 'export PATH=.*\.local/bin' "${HOME}/.zshrc"; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "${HOME}/.zshrc"
+    echo "[✓] Added to ~/.zshrc"
+  fi
+  export PATH="${BIN_DIR}:${PATH}"
 fi
 
-# 5. Initialize agy1 (Primary profile)
+# 9. Initialize agy1 (Primary profile)
 echo "[*] Initializing Primary Profile (agy1)..."
 "${ROOT_DIR}/bin/agy-setup" 1
 
