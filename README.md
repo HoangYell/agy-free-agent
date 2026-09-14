@@ -6,6 +6,11 @@
 </p>
 
 <p align="center">
+  <em>🦐 "Nuôi tôm bằng Antigravity được không? Câu trả lời là ĐƯỢC. OpenCode hay Cursor cũng được luôn!"</em><br>
+  <sub>("Can you automate shrimp farming with Antigravity? Absolutely YES. OpenCode or Cursor work just as seamlessly!")</sub>
+</p>
+
+<p align="center">
   <a href="#features">Features</a> •
   <a href="#architecture">Architecture</a> •
   <a href="#60-second-quickstart">Quickstart</a> •
@@ -26,6 +31,14 @@ Most modern autonomous coding agents force developers into painful trade-offs:
 Yet almost every developer already possesses **2 to 5 standard Google accounts**.
 
 **AgyFreeAgent** bridges this gap. Built on top of **Google Antigravity CLI (`agy`)**, it provisions an isolated, multi-profile swarm powered by Linux user-space filesystem namespaces (**Bubblewrap `bwrap`**). You get a persistent, full-control AI engineer running directly on your Linux host—with **zero API keys and zero monthly subscriptions**.
+
+> [!TIP]
+> **🦐 "Nuôi tôm bằng Antigravity được không?" — Câu trả lời là ĐƯỢC!**
+> 
+> Dù bạn muốn:
+> * 🌾 **Vận hành hệ thống thực tế & IoT**: Giám sát cảm biến, cào dữ liệu, bắt hình camera phần cứng (`/dev/video0`), tự động hoá 24/7 từ nông trại công nghệ cao đến homelab server.
+> * 💻 **Lập trình cùng Cursor & OpenCode**: Chạy song hành Antigravity swarm (`agy1`..`agy5`) với Cursor IDE và kho mô hình mở OpenCode (`oa1`..`oa6`).
+> * 🛡️ **Tự sửa bug & deploy CI/CD xuyên đêm**: Agent tự inspect diff, chạy build, test và đẩy production mà không bao giờ đòi thẻ tín dụng hay tốn tiền API.
 
 ---
 
