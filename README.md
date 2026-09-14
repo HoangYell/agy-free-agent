@@ -20,7 +20,7 @@
 
 Most modern autonomous coding agents force developers into painful trade-offs:
 1. **The Credit Card Trap**: Burning through hundreds of dollars in OpenAI/Anthropic API bills when an agent gets stuck in a loop.
-2. **The $500/mo Paywall**: Expensive hosted subscriptions (Devin, Enterprise tools) that lock your code in the cloud.
+2. **The Paywalled Subscriptions**: Expensive commercial platforms (OpenAI Codex Pro/Enterprise, hosted sandboxes) that lock your code in remote containers.
 3. **The Quota Wall**: Single-session CLI tools that hit rate limits after an hour of heavy coding, bringing work to a halt.
 
 Yet almost every developer already possesses **2 to 5 standard Google accounts**.
@@ -221,15 +221,17 @@ systemctl --user enable --now agy-watchdog.timer
 
 ## 📊 Comparison Matrix
 
-| Feature | AgyFreeAgent | Devin ($500/mo) | Claude Code | Hermes Agent |
-| :--- | :---: | :---: | :---: | :---: |
-| **API Keys Required** | **Zero (0)** | N/A (Cloud) | Anthropic API | OpenAI / Any API |
-| **Cost** | **$0 / Free** | $500/month | Pay per token | API bill |
-| **Execution Host** | **Local Linux / Host** | Cloud VM sandbox | Local CLI | Local TUI / Terminal |
-| **Multi-Account Swarm** | **Native (`bwrap`)** | No | No | No |
-| **System Admin (`sudo`)** | **Full (`sudo all`)** | Container only | Limited | Limited |
-| **Quota Telemetry** | **One-key (`q`)** | Dashboard | CLI prompt | None |
-| **Visual Verification** | **Native Chrome CDP** | Browser tool | Headless MCP | No |
+| Feature | AgyFreeAgent | Claude Code | OpenAI Codex | OpenClaw | Hermes Agent |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **API Keys Required** | **Zero (0)** | Anthropic API | OpenAI API | BYO API Keys | BYO API Keys |
+| **Cost** | **$0 / Free** | Pay per token | Subscription / API | API Consumption | API Consumption |
+| **Execution Host** | **Local Linux / Host** | Local CLI | Remote / Local CLI | Self-Hosted / Docker | Local TUI / Modal |
+| **Multi-Account Swarm** | **Native (`bwrap`)** | No | No | Manual env swap | No |
+| **Persistent Memory** | **4-Tier (Global+Repo+Skills+SQLite)** | `CLAUDE.md` (flat) | Session Memory | `SOUL.md` + flat | 3 files (~2.2k chars) |
+| **System Admin (`sudo`)** | **Full (`sudo all`)** | Interactive prompts | Sandboxed | Partial / Container | Terminal restricted |
+| **Quota Telemetry** | **One-key (`q`)** | CLI statusline | Web portal | Basic CLI | None |
+| **Background Daemons** | **Systemd & Cron** | Interactive CLI | Webhooks | Docker Daemon | Gateway / Cron |
+| **Real Visual Test** | **Native Chrome CDP** | Headless MCP | Headless Snapshot | No | No |
 
 ---
 
