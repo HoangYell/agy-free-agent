@@ -1,0 +1,17 @@
+[Unit]
+Description=AgyFreeAgent 2-Way Interactive Telegram Command & Control Daemon
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/workspaces/agy-free-agent/.env
+EnvironmentFile=-%h/.config/agy-agent/.env
+EnvironmentFile=-%h/.env
+ExecStart=%h/.local/bin/telegram-bot
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

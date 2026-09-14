@@ -1,0 +1,341 @@
+#!/usr/bin/env node
+/**
+ * AgyFreeAgent - 2-Way Autonomous Telegram Command & Control Bridge
+ * "Command your Linux engineering host directly from your phone."
+ * 
+ * Zero external npm dependencies (uses native Node 18+ fetch).
+ * 
+ * Capabilities:
+ *   - /status or /q   : Live swarm quotas, CPU%, RAM, active PIDs
+ *   - /run <cmd>      : Execute any shell command and stream terminal output
+ *   - /agy <prompt>   : Dispatch task to agy1 and reply with agent output
+ *   - /cam or /photo  : Snap live photo from /dev/video0 hardware webcam
+ *   - /ip             : Report local, Tailscale mesh, and gateway IPs
+ *   - /clean          : Run agy-clean-logs host pruner
+ *   - /heal           : Run network-heal.sh auto-recovery
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { exec, execSync } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execAsync = promisify(exec);
+
+// 1. Resolve Configuration (.env or environment)
+function loadEnv() {
+  const envCandidates = [
+    path.join(process.cwd(), '.env'),
+    path.join(os.homedir(), 'workspaces', 'agy-free-agent', '.env'),
+    path.join(os.homedir(), '.config', 'agy-agent', '.env'),
+    path.join(os.homedir(), '.env')
+  ];
+
+  for (const envPath of envCandidates) {
+    if (fs.existsSync(envPath)) {
+      try {
+        const content = fs.readFileSync(envPath, 'utf8');
+        for (const line of content.split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const match = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
+          if (match) {
+            const key = match[1];
+            let val = match[2].trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            if (!process.env[key]) {
+              process.env[key] = val;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+}
+
+loadEnv();
+
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+if (!BOT_TOKEN || !CHAT_ID) {
+  console.error('[!] Error: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set in .env or environment.');
+  console.error('    See .env.example for 30-second setup links.');
+  process.exit(1);
+}
+
+const API_BASE = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+// 2. Telegram API Helpers
+async function sendMessage(chatId, text, parseMode = 'Markdown') {
+  // Telegram has a 4096 character limit per message. Chunk if necessary.
+  const MAX_LEN = 3900;
+  if (text.length <= MAX_LEN) {
+    try {
+      const res = await fetch(`${API_BASE}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text, parse_mode: parseMode })
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        // Fallback to plain text if markdown formatting failed
+        await fetch(`${API_BASE}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text })
+        });
+      }
+    } catch (e) {
+      console.error('[!] Error sending message:', e.message);
+    }
+  } else {
+    for (let i = 0; i < text.length; i += MAX_LEN) {
+      const chunk = text.slice(i, i + MAX_LEN);
+      await sendMessage(chatId, chunk, null);
+    }
+  }
+}
+
+async function sendPhoto(chatId, imagePath, caption = '') {
+  try {
+    const fileBuffer = fs.readFileSync(imagePath);
+    const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('photo', blob, path.basename(imagePath));
+    if (caption) formData.append('caption', caption);
+
+    await fetch(`${API_BASE}/sendPhoto`, {
+      method: 'POST',
+      body: formData
+    });
+  } catch (e) {
+    await sendMessage(chatId, `⚠️ Failed to send photo: ${e.message}`);
+  }
+}
+
+// 3. Command Handlers
+async function handleCommand(cmd, args, rawMsg) {
+  const c = cmd.toLowerCase().replace(/@\w+$/, '');
+
+  switch (c) {
+    case '/start':
+    case '/help': {
+      const help = [
+        `🤖 *AgyFreeAgent Control Station*`,
+        ``,
+        `• \`/status\` or \`/q\` — Quota telemetry, CPU/RAM & running PIDs`,
+        `• \`/run <cmd>\` — Execute shell command on host`,
+        `• \`/agy <prompt>\` — Dispatch prompt to agy1 in background`,
+        `• \`/cam\` or \`/photo\` — Snap picture from /dev/video0 webcam`,
+        `• \`/ip\` — Report Tailscale mesh & public IP`,
+        `• \`/clean\` — Run agy-clean-logs pruner`,
+        `• \`/heal\` — Trigger network self-healing`,
+        ``,
+        `_Host: ${os.hostname()} (${os.platform()} ${os.arch()})_`
+      ].join('\n');
+      return help;
+    }
+
+    case '/status':
+    case '/q': {
+      try {
+        const qOutput = execSync('q 2>/dev/null || true', { encoding: 'utf8', timeout: 8000 });
+        if (qOutput.trim()) {
+          // Clean ANSI escape codes for Telegram
+          const cleanQ = qOutput.replace(/\x1b\[[0-9;]*m/g, '');
+          return `📊 *Agy Live Quota & Swarm Telemetry*\n\`\`\`\n${cleanQ.trim()}\n\`\`\``;
+        }
+      } catch (e) {}
+
+      // Fallback telemetry
+      const uptimeH = (os.uptime() / 3600).toFixed(1);
+      const freeMem = (os.freemem() / (1024 * 1024 * 1024)).toFixed(2);
+      const totalMem = (os.totalmem() / (1024 * 1024 * 1024)).toFixed(2);
+      return [
+        `📊 *Host Telemetry*`,
+        `• Hostname: \`${os.hostname()}\``,
+        `• Uptime: \`${uptimeH} hours\``,
+        `• RAM: \`${freeMem} GB free / ${totalMem} GB total\``,
+        `• Load Average: \`${os.loadavg().map(n => n.toFixed(2)).join(', ')}\``
+      ].join('\n');
+    }
+
+    case '/run': {
+      if (!args) return `⚠️ Please specify a command: \`/run <command>\` (e.g. \`/run git status\`)`;
+      try {
+        const { stdout, stderr } = await execAsync(args, { timeout: 30000, maxBuffer: 1024 * 1024 });
+        const output = (stdout || stderr || '(No output)').trim();
+        return `💻 *\`${args}\`*\n\`\`\`\n${output}\n\`\`\``;
+      } catch (e) {
+        return `❌ *Command failed*\n\`\`\`\n${(e.stdout || e.stderr || e.message || 'Error').trim()}\n\`\`\``;
+      }
+    }
+
+    case '/agy':
+    case '/ask': {
+      if (!args) return `⚠️ Please specify a prompt: \`/agy <prompt>\``;
+      await sendMessage(CHAT_ID, `⏳ *Dispatching to agy1...*\n_"${args}"_`);
+
+      // Run agy1 with prompt asynchronously
+      exec(`agy1 --prompt "${args.replace(/"/g, '\\"')}"`, { timeout: 180000 }, (err, stdout, stderr) => {
+        if (err) {
+          sendMessage(CHAT_ID, `❌ *agy1 error:*\n\`\`\`\n${(stderr || err.message).slice(0, 1000)}\n\`\`\``);
+        } else {
+          const result = (stdout || '(Agent finished task successfully)').trim();
+          sendMessage(CHAT_ID, `✦ *agy1 Task Complete:*\n\n${result}`);
+        }
+      });
+      return null;
+    }
+
+    case '/cam':
+    case '/photo': {
+      const snapPath = '/tmp/agy_telegram_snap.jpg';
+      let captured = false;
+
+      // Try fswebcam
+      if (commandExists('fswebcam')) {
+        try {
+          execSync(`fswebcam -d /dev/video0 -r 1280x720 --no-banner ${snapPath} 2>/dev/null`);
+          captured = fs.existsSync(snapPath);
+        } catch (e) {}
+      }
+
+      // Try ffmpeg fallback
+      if (!captured && commandExists('ffmpeg')) {
+        try {
+          execSync(`ffmpeg -y -f v4l2 -video_size 1280x720 -i /dev/video0 -frames:v 1 ${snapPath} 2>/dev/null`);
+          captured = fs.existsSync(snapPath);
+        } catch (e) {}
+      }
+
+      if (captured) {
+        await sendPhoto(CHAT_ID, snapPath, `👁️ Live webcam capture from ${os.hostname()} at ${new Date().toLocaleTimeString()}`);
+        return null;
+      } else {
+        return `⚠️ Webcam capture failed: /dev/video0 not accessible or fswebcam/ffmpeg not installed.`;
+      }
+    }
+
+    case '/ip': {
+      let tailscaleIp = 'Not connected';
+      try {
+        tailscaleIp = execSync('tailscale ip -4 2>/dev/null', { encoding: 'utf8' }).trim() || 'Not connected';
+      } catch (e) {}
+
+      let publicIp = 'Unknown';
+      try {
+        publicIp = execSync('curl -s --max-time 3 https://ifconfig.me 2>/dev/null', { encoding: 'utf8' }).trim() || 'Unknown';
+      } catch (e) {}
+
+      return [
+        `📡 *Network Addresses*`,
+        `• Tailscale Mesh IP: \`${tailscaleIp}\``,
+        `• Public WAN IP: \`${publicIp}\``,
+        `• Hostname: \`${os.hostname()}\``
+      ].join('\n');
+    }
+
+    case '/clean': {
+      await sendMessage(CHAT_ID, `🧹 *Running agy-clean-logs...*`);
+      try {
+        const out = execSync('agy-clean-logs 2>/dev/null', { encoding: 'utf8' });
+        return `✔ *Cleanup Complete*\n\`\`\`\n${out.trim()}\n\`\`\``;
+      } catch (e) {
+        return `⚠️ Cleanup error: ${e.message}`;
+      }
+    }
+
+    case '/heal': {
+      await sendMessage(CHAT_ID, `📡 *Running network self-healing...*`);
+      try {
+        const out = execSync('bash scripts/network-heal.sh 2>/dev/null || network-heal 2>/dev/null', { encoding: 'utf8' });
+        return `✔ *Network Status*\n\`\`\`\n${out.trim()}\n\`\`\``;
+      } catch (e) {
+        return `⚠️ Network heal: ${e.message}`;
+      }
+    }
+
+    default: {
+      return `❓ Unknown command: \`${cmd}\`. Type \`/help\` for available commands.`;
+    }
+  }
+}
+
+function commandExists(bin) {
+  try {
+    execSync(`command -v ${bin} &>/dev/null`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// 4. Long-Polling Loop
+let lastUpdateId = 0;
+
+async function pollUpdates() {
+  const url = `${API_BASE}/getUpdates?offset=${lastUpdateId + 1}&timeout=30`;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(35000) });
+    if (!res.ok) {
+      await new Promise(r => setTimeout(r, 5000));
+      return;
+    }
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.result)) return;
+
+    for (const update of data.result) {
+      lastUpdateId = Math.max(lastUpdateId, update.update_id);
+      const msg = update.message;
+      if (!msg || !msg.text) continue;
+
+      // STRICT SECURITY FILTER: Verify sender ID matches TELEGRAM_CHAT_ID
+      const senderId = String(msg.from?.id || msg.chat?.id);
+      if (senderId !== String(CHAT_ID)) {
+        console.warn(`[!] Unauthorized access attempt from ID: ${senderId} (@${msg.from?.username || 'unknown'})`);
+        continue;
+      }
+
+      const text = msg.text.trim();
+      console.log(`[+] Received command from authorized chat: ${text}`);
+
+      const parts = text.split(/\s+/);
+      const cmd = parts[0];
+      const args = parts.slice(1).join(' ');
+
+      const reply = await handleCommand(cmd, args, msg);
+      if (reply) {
+        await sendMessage(CHAT_ID, reply);
+      }
+    }
+  } catch (e) {
+    // Transient network error, back off briefly
+    await new Promise(r => setTimeout(r, 4000));
+  }
+}
+
+// 5. Main Loop
+console.log(`========================================================`);
+console.log(`  ✦ AgyFreeAgent 2-Way Telegram Bridge Active ✦`);
+console.log(`  Target Chat ID : ${CHAT_ID}`);
+console.log(`  Host           : ${os.hostname()} (${os.platform()})`);
+console.log(`========================================================`);
+
+async function main() {
+  await sendMessage(CHAT_ID, `🟢 *AgyFreeAgent 2-Way Bridge Online*\nHost \`${os.hostname()}\` is ready. Send \`/help\` for commands.`);
+
+  while (true) {
+    await pollUpdates();
+  }
+}
+
+main().catch(err => {
+  console.error('[FATAL]', err);
+  process.exit(1);
+});

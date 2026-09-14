@@ -376,9 +376,11 @@ ln -sf "${ROOT_DIR}/bin/q" "${BIN_DIR}/q"
 ln -sf "${ROOT_DIR}/bin/cleanroom-guard" "${BIN_DIR}/cleanroom-guard"
 ln -sf "${ROOT_DIR}/bin/agy-clean-logs" "${BIN_DIR}/agy-clean-logs"
 ln -sf "${ROOT_DIR}/bin/telegram-notify" "${BIN_DIR}/telegram-notify"
+ln -sf "${ROOT_DIR}/bin/telegram-bot" "${BIN_DIR}/telegram-bot"
 ln -sf "${ROOT_DIR}/bin/post-to-x" "${BIN_DIR}/post-to-x"
+ln -sf "${ROOT_DIR}/scripts/keep-awake.sh" "${BIN_DIR}/keep-awake"
 
-chmod +x "${ROOT_DIR}/bin/agy-setup" "${ROOT_DIR}/bin/q" "${ROOT_DIR}/bin/cleanroom-guard" "${ROOT_DIR}/bin/agy-clean-logs" "${ROOT_DIR}/bin/telegram-notify" "${ROOT_DIR}/bin/post-to-x" "${ROOT_DIR}/scripts/clean-logs.sh" "${ROOT_DIR}/scripts/telegram-notify.sh" "${ROOT_DIR}/scripts/setup-sudo.sh" "${ROOT_DIR}/scripts/uninstall.sh"
+chmod +x "${ROOT_DIR}/bin/"* "${ROOT_DIR}/scripts/"*.sh
 
 # Ensure ~/.local/bin is in PATH
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
@@ -555,10 +557,20 @@ if systemctl --user status &>/dev/null; then
     cp "${ROOT_DIR}/templates/systemd/agy-watchdog."* "${SYSTEMD_USER_DIR}/" 2>/dev/null || true
   fi
 
+  # 3. 2-Way Telegram Command & Control Daemon
+  if [[ -f "${ROOT_DIR}/templates/systemd/telegram-bot.service" ]]; then
+    cp "${ROOT_DIR}/templates/systemd/telegram-bot.service" "${SYSTEMD_USER_DIR}/telegram-bot.service"
+  fi
+
   systemctl --user daemon-reload 2>/dev/null || true
   systemctl --user enable --now headless-chrome.service 2>/dev/null || true
   systemctl --user enable --now agy-cleanup.timer 2>/dev/null || true
   systemctl --user enable --now agy-watchdog.timer 2>/dev/null || true
+
+  if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
+    systemctl --user enable --now telegram-bot.service 2>/dev/null || true
+    echo -e "  ${GREEN}✔ 2-Way Telegram bot daemon active (phone remote control ready).${RESET}"
+  fi
 
   if systemctl --user is-active --quiet headless-chrome.service; then
     echo -e "  ${GREEN}✔ Dedicated Headless Chrome daemon active on port 9222 (0.1s launch, 800M quota).${RESET}"
@@ -568,6 +580,12 @@ if systemctl --user status &>/dev/null; then
   echo -e "  ${GREEN}✔ Autonomous hygiene timers enabled (agy-cleanup.timer, agy-watchdog.timer).${RESET}"
 else
   echo -e "  ${SLATE}● Systemd user session not detected (WSL/container without systemd). Skipping daemons.${RESET}"
+fi
+
+# Optional 24/7 Keep-Awake Optimization
+if [[ "${KEEP_AWAKE:-}" =~ ^[Yy]|true$ ]]; then
+  echo -e "  ${CYAN}ℹ Applying 24/7 Keep-Awake optimization (lid-close ignore, sleep mask)...${RESET}"
+  bash "${ROOT_DIR}/scripts/keep-awake.sh" --apply || true
 fi
 
 # ==============================================================================
@@ -586,8 +604,9 @@ echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Git Author:${RESET}      ${SLATE}$
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Sudo Autonomy:${RESET}   $(sudo -n true 2>/dev/null && echo -e "${GREEN}Enabled (NOPASSWD)${RESET}" || echo -e "${AMBER}Requires Password${RESET}")"
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}MCP Server Suite:${RESET} ${GREEN}Active${RESET} ${SLATE}(chrome-devtools$([[ -n "${GH_MCP_TOKEN}" ]] && echo ", github"))${RESET}"
 if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
-  echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Telegram Alerts:${RESET} ${GREEN}Active${RESET} ${SLATE}(mobile briefing ready)${RESET}"
+  echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Telegram Bot:${RESET}    ${GREEN}Active (2-Way Control)${RESET} ${SLATE}(/status, /run, /agy from phone)${RESET}"
 fi
+echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}24/7 Keep-Awake:${RESET} ${SLATE}Run 'keep-awake --status' or 'keep-awake --apply'${RESET}"
 if [[ -n "${X_AUTH_TOKEN:-}" ]]; then
   echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}X / Twitter:${RESET}     ${GREEN}Configured${RESET} ${SLATE}(post-to-x ready)${RESET}"
 fi

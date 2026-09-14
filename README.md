@@ -13,6 +13,8 @@
   <a href="#-key-features">Features</a> •
   <a href="#%EF%B8%8F-architecture">Architecture</a> •
   <a href="#-60-second-quickstart">Quickstart</a> •
+  <a href="#-247-keep-awake-laptop-lid-close--sleep-prevention">24/7 Keep-Awake</a> •
+  <a href="#-2-way-telegram-command--control-bridge">Telegram Bot</a> •
   <a href="#-bundled-mcp-server-suite-out-of-the-box">MCP Suite</a> •
   <a href="#%EF%B8%8F-commands-cheat-sheet">Commands</a> •
   <a href="#-comparison-matrix">Comparison</a>
@@ -51,7 +53,8 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 * **📂 Canonical Workspace Standard (`~/workspaces`)**: Safe, structured workspace routing automatically trusted in agent permissions.
 * **⏰ Autonomous Scheduling (Cron & Systemd)**: Run automated background reviews, overnight issue triaging, and CI verification while you sleep.
 * **🔒 Isolated Auth Storage**: Google session tokens are compartmentalized per profile inside `~/.gemini-profiles/acc<N>/` via `bwrap`, while host tools (`git`, `ssh`, `docker`) remain natively accessible.
-* **📱 Ubiquitous Remote Access**: Command your agent anywhere via **Tailscale Mesh VPN** and **Termius** on mobile, with async alerts delivered straight to **Telegram**.
+* **📱 2-Way Mobile Telegram Bridge (`telegram-bot`)**: Remotely command your Linux host from your phone (`/status`, `/run <cmd>`, `/agy <prompt>`, `/cam`, `/ip`, `/clean`, `/heal`) with zero npm dependencies and strict sender ID verification.
+* **💤 24/7 Keep-Awake Engine (`keep-awake`)**: Close your laptop lid without triggering sleep, mask systemd sleep/suspend targets, and disable Wi-Fi powersave to run a silent 24/7 home server.
 * **👁️ Physical World Vision (`/dev/video0`)**: Hardware webcam integration enabling the agent to visually inspect physical setups, user presence, and circuit boards.
 * **🔌 Bundled MCP Server Suite**: Pre-configured with Chrome DevTools Protocol (`chrome-devtools`) and official GitHub API (`github`)—all auto-approved with zero confirmation dialogs.
 * **🚀 Dedicated Headless Chrome Daemon**: Systemd CDP daemon on port 9222 with cgroups v2 resource quotas—connect in 0.1s with 80% lower RAM.
@@ -345,7 +348,9 @@ sequenceDiagram
 | **`agy-setup <N>`** | Provision and configure a new isolated profile for account `<N>`. |
 | **`q`** | Check live quota status, OAuth session validity, and running PIDs across all accounts. |
 | **`agy-clean-logs`** | Prune stale session logs (>7 days) and vacuum journalctl storage. |
+| **`telegram-bot`** | Launch the 2-way interactive Telegram Command & Control daemon. |
 | **`telegram-notify`** | Dispatch real-time task alerts or status updates to Telegram. |
+| **`keep-awake`** | Configure laptop lid close ignore, sleep mask, and Wi-Fi powersave for 24/7 uptime. |
 | **`post-to-x`** | Publish tweets, threads, and media to X (Twitter) autonomously with zero API fees. |
 | **`cleanroom-guard`** | Audit staged git files for potential secret, token, or private key leaks. |
 
@@ -450,21 +455,23 @@ Turn your Linux machine into an autonomous engineering station you can command f
 ```mermaid
 flowchart LR
     subgraph Mobile["Mobile Access (Anywhere)"]
-        Phone["iPhone / Android / iPad<br/>(Termius App)"]
-        TG["Telegram App<br/>(Push Notifications & Alerts)"]
+        Phone["iPhone / Android / iPad<br/>(Termius SSH)"]
+        TG["Telegram App<br/>(2-Way Commands & Alerts)"]
     end
 
     subgraph Mesh["Encrypted Private Mesh"]
         TS["Tailscale Mesh VPN<br/>(Zero Port Forwarding)"]
     end
 
-    subgraph Host["Your Linux Host / Server"]
+    subgraph Host["Your Linux Host / 24/7 Server"]
         Agy["AgyFreeAgent Swarm<br/>(agy1..agyn, tmux)"]
-        Notifier["telegram-notify<br/>(Automated Alerts)"]
+        Bot["telegram-bot Daemon<br/>(2-Way C&C Bridge)"]
+        Awake["keep-awake<br/>(Lid-Close & Sleep Mask)"]
     end
 
     Phone -->|Secure Tailscale SSH| TS --> Agy
-    Agy --> Notifier --> TG
+    TG <-->|2-Way Commands & Photos| Bot
+    Bot --> Agy
 ```
 
 ### 1. Tailscale: Zero-Port-Forwarding Private Mesh
@@ -481,22 +488,133 @@ Your machine is now securely accessible from your phone, laptop, or tablet via i
 * **Persistent Sessions**: Run your agent inside `tmux` or `screen`. Close your phone, put it in your pocket, and your agent continues autonomous task execution uninterrupted.
 * **On-the-Go Swarm Monitoring**: Check model quotas across all profiles or trigger a background build in seconds from anywhere.
 
-### 3. Telegram: Real-Time Alerts & Task Notifications
-Receive instant push notifications when long-running agent tasks complete, builds finish, or errors occur:
-1. Create a bot with [@BotFather](https://t.me/BotFather) and get your chat ID via [@userinfobot](https://t.me/userinfobot).
-2. Set your environment variables (in `~/.bashrc` or your `.env` file):
+### 3. Telegram: 2-Way Command & Control Bridge + Instant Alerts
+
+Turn your phone into an interactive command dashboard for your Linux host. Unlike simple push notification bots, AgyFreeAgent includes a **full 2-way Command & Control daemon (`telegram-bot`)** powered by native Node.js (zero external npm dependencies) running 24/7 via systemd.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as You (Phone / Telegram)
+    participant Bot as telegram-bot Daemon
+    participant Host as Linux Host & Tools
+    participant Agy as agy1 Agent Swarm
+
+    Dev->>Bot: /status
+    Bot->>Host: Runs q + checks CPU/RAM/PIDs
+    Bot-->>Dev: Live quotas, uptime & memory
+
+    Dev->>Bot: /run git status
+    Bot->>Host: Executes command in bash
+    Bot-->>Dev: Streams terminal stdout/stderr
+
+    Dev->>Bot: /agy "Fix broken tests in my-app"
+    Bot->>Agy: Dispatches prompt to agy1
+    Agy->>Host: Refactors code & runs tests
+    Bot-->>Dev: [✓] Agent task summary & diff
+
+    Dev->>Bot: /cam
+    Bot->>Host: Captures /dev/video0 via ffmpeg/fswebcam
+    Bot-->>Dev: Sends live photo of your workspace
+```
+
+#### Bot Commands Reference:
+| Command | Action |
+| :--- | :--- |
+| **`/status`** or **`/q`** | Live swarm quotas, CPU%, RAM, active PIDs, and system uptime. |
+| **`/run <command>`** | Execute any shell command directly on the host and stream output back. |
+| **`/agy <prompt>`** | Dispatch an autonomous coding prompt to `agy1` and receive the agent's report. |
+| **`/cam`** or **`/photo`** | Snap a real-time photo from the hardware webcam (`/dev/video0`). |
+| **`/ip`** | Display local network IP, Tailscale mesh IP, and default gateway. |
+| **`/clean`** | Trigger `agy-clean-logs` to prune stale logs, journals, and temp caches. |
+| **`/heal`** | Run network auto-reconnect recovery script. |
+| **`/help`** | Display the interactive command guide. |
+
+#### Setup & Security:
+1. Create a bot with [@BotFather](https://t.me/BotFather) and get your numeric chat ID via [@userinfobot](https://t.me/userinfobot).
+2. Add credentials to your `.env` file (or `~/.bashrc`):
    ```bash
-   export TELEGRAM_BOT_TOKEN="your_bot_token_here"
-   export TELEGRAM_CHAT_ID="your_chat_id_here"
+   TELEGRAM_BOT_TOKEN="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
+   TELEGRAM_CHAT_ID="123456789"
    ```
-3. Dispatch alerts directly from agent tasks or bash commands:
+3. **Strict Sender ID Defense**: The daemon verifies `msg.from.id === TELEGRAM_CHAT_ID` on every incoming message. Unauthorized users attempting to interact with the bot are immediately rejected.
+4. **Persistent 24/7 Systemd Daemon**:
+   ```bash
+   # Automatically enabled by install.sh when tokens exist, or manage manually:
+   systemctl --user enable --now telegram-bot.service
+   systemctl --user status telegram-bot.service
+   ```
+5. **One-Way CLI Alerts (`telegram-notify`)**:
+   You can also dispatch standalone CLI notifications from scripts, agent tasks, or cronjobs:
    ```bash
    telegram-notify "🚀 Deploy Complete: Production build verified and healthy!"
    ```
-4. Integrate with morning cronjobs:
+   Or pipe outputs directly:
    ```bash
    0 8 * * 1-5 ~/.local/bin/agy1 --prompt "Triage repo issues" | telegram-notify
    ```
+
+---
+
+## 💤 24/7 Keep-Awake: Laptop Lid Close & Sleep Prevention
+
+Many developers host their autonomous agent swarm on a spare laptop (e.g. ThinkPad, Dell XPS, LG Gram, or MacBook running Linux). By default, closing the laptop lid or leaving the machine idle triggers system sleep or suspend, terminating SSH tunnels, killing background agent tasks, and disconnecting Telegram.
+
+AgyFreeAgent includes **`keep-awake`** (`scripts/keep-awake.sh`), a battle-tested systemd optimizer that turns any Linux laptop into a silent, 24/7 headless workstation.
+
+```mermaid
+flowchart TD
+    subgraph Trigger["Lid Close & Inactivity Events"]
+        Lid["Lid Switch Closed"]
+        Idle["System Idle Timeout"]
+        Sleep["Kernel Sleep Request"]
+    end
+
+    subgraph KeepAwake["keep-awake Optimizer (systemd-logind drop-in)"]
+        D1["HandleLidSwitch=ignore"]
+        D2["HandleLidSwitchExternalPower=ignore"]
+        D3["Mask sleep.target & suspend.target"]
+        D4["Disable Wi-Fi Powersave (802.11)"]
+    end
+
+    subgraph Result["24/7 Headless Server"]
+        Run["Swarm & Daemons Run Uninterrupted 24/7"]
+        SSH["SSH & Tailscale Always Reachable"]
+        TG["Telegram Bot Responds Instantly"]
+    end
+
+    Trigger --> KeepAwake --> Result
+```
+
+### What It Configures:
+1. **`systemd-logind` Drop-in (`/etc/systemd/logind.conf.d/99-agy-keepawake.conf`)**:
+   * `HandleLidSwitch=ignore`: Keeps the system running at full speed when the lid is shut.
+   * `HandleLidSwitchExternalPower=ignore`: Ignores lid events while plugged into AC power.
+   * `HandleLidSwitchDocked=ignore`: Ignores lid events when connected to external displays or docks.
+   * `LidSwitchIgnoreInhibited=no`: Prevents conflicting inhibitors from suspending the machine.
+2. **Systemd Sleep Target Masking**:
+   * Masks `sleep.target`, `suspend.target`, `hibernate.target`, and `hybrid-sleep.target` so that no system event, desktop environment (GNOME/KDE), or idle timer can put the kernel to sleep.
+3. **Wi-Fi Power-Save Prevention**:
+   * Configures NetworkManager (`/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf`) with `wifi.powersave = 2` (disabled), preventing the wireless card from dropping into high-latency sleep mode.
+4. **Zero Reboot Required**:
+   * Reloads `systemd-logind` and NetworkManager live without rebooting the host.
+
+### Usage:
+
+```bash
+# 1. Apply 24/7 keep-awake optimization:
+keep-awake --apply
+# (Or: ./scripts/keep-awake.sh --apply)
+
+# 2. Check current keep-awake status:
+keep-awake --status
+
+# 3. Revert back to system defaults anytime:
+keep-awake --revert
+```
+
+> [!TIP]
+> **Battery Longevity When Plugged In**: If keeping a laptop closed 24/7 on AC power, most modern laptops (ThinkPad Vantage, LG Gram Assistant, ASUS Battery Health, Dell Command) support limiting maximum charge to 80% to protect battery longevity.
 
 ---
 
