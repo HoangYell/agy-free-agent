@@ -16,6 +16,13 @@ TEMPLATES_DIR="$(cd "${SCRIPT_DIR}/../templates" 2>/dev/null && pwd)"
 mkdir -p "${BIN_DIR}"
 mkdir -p "${HOME}/workspaces"
 
+# Seed global mcp_config.json if not present
+MCP_GLOBAL="${HOME}/.gemini/config/mcp_config.json"
+if [[ ! -f "${MCP_GLOBAL}" && -f "${TEMPLATES_DIR}/mcp_config.json" ]]; then
+  mkdir -p "${HOME}/.gemini/config"
+  cp "${TEMPLATES_DIR}/mcp_config.json" "${MCP_GLOBAL}"
+fi
+
 usage() {
   echo "Usage: agy-setup <profile_number> (e.g. agy-setup 2, agy-setup 3)"
   echo ""

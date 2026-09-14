@@ -10,12 +10,12 @@
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#60-second-quickstart">Quickstart</a> •
-  <a href="#commands">Commands</a> •
-  <a href="#security--auth-storage">Security</a> •
-  <a href="#comparison">Comparison</a>
+  <a href="#-key-features">Features</a> •
+  <a href="#%EF%B8%8F-architecture">Architecture</a> •
+  <a href="#-60-second-quickstart">Quickstart</a> •
+  <a href="#-bundled-mcp-server-suite-out-of-the-box">MCP Suite</a> •
+  <a href="#%EF%B8%8F-commands-cheat-sheet">Commands</a> •
+  <a href="#-comparison-matrix">Comparison</a>
 </p>
 
 ---
@@ -53,6 +53,7 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 * **🔒 Isolated Auth Storage**: Google session tokens are compartmentalized per profile inside `~/.gemini-profiles/acc<N>/` via `bwrap`, while host tools (`git`, `ssh`, `docker`) remain natively accessible.
 * **📱 Ubiquitous Remote Access**: Command your agent anywhere via **Tailscale Mesh VPN** and **Termius** on mobile, with async alerts delivered straight to **Telegram**.
 * **👁️ Physical World Vision (`/dev/video0`)**: Hardware webcam integration enabling the agent to visually inspect physical setups, user presence, and circuit boards.
+* **🔌 Bundled MCP Server Suite**: Pre-configured with Chrome DevTools Protocol (`chrome-devtools`), official GitHub API (`github`), and anti-hallucination loop recovery (`ctrl-alt-pray`)—all auto-approved with zero confirmation dialogs.
 * **🚀 Dedicated Headless Chrome Daemon**: Systemd CDP daemon on port 9222 with cgroups v2 resource quotas—connect in 0.1s with 80% lower RAM.
 * **🐦 Zero-API Social Automation (X / Twitter)**: Headless CDP session injection to publish tweets and media autonomously without $100/mo API fees.
 * **🛡️ Clean-Room Pre-Flight Shield**: Built-in `cleanroom-guard` verifies that no private keys, passwords, or credentials can ever be committed to Git.
@@ -130,6 +131,8 @@ nano .env   # (or use VS Code / Cursor: cursor .env)
 * ✦ Auto-installs missing dependencies (`bubblewrap`, `git`, `nodejs`, `jq`).
 * ✦ Configures passwordless sudo (`/etc/sudoers.d/agy-agent`) and Ed25519 SSH keys.
 * ✦ Deploys zero-prompt YOLO permissions (`settings.json`) and autonomous engineer persona (`GEMINI.md`).
+* ✦ Provisions global MCP servers (`~/.gemini/config/mcp_config.json`) with auto-approved `mcp(*)` permissions.
+* ✦ Activates dedicated background headless Chrome daemon on port 9222 and systemd hygiene timers.
 * ✦ Links CLI tools (`agy1`, `agy2`, `q`, `cleanroom-guard`, `post-to-x`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/`.
 
 > [!TIP]
@@ -224,6 +227,73 @@ By default, standard AI tools stop and ask for your permission every single time
 * ⚡ **Zero Confirmation Prompts**: Commands (`npm install`, `cargo build`, `git commit`) run immediately.
 * 📁 **Cross-Directory Inspection**: The agent can inspect system configs, read `/var/log/`, or check brother repositories in `~/workspaces/` without permission barriers.
 * 🌙 **True Overnight Autonomy**: Combined with passwordless sudo (`./scripts/setup-sudo.sh`), your agent will never freeze waiting for human approval.
+
+---
+
+## 🔌 Bundled MCP Server Suite (Out-of-the-Box)
+
+The **Model Context Protocol (MCP)** is the open standard that connects AI models directly to external tools, browsers, and development services.
+
+Most setups require tedious JSON editing and manual tool approval. **AgyFreeAgent packages, installs, and auto-approves 3 essential production MCP servers automatically:**
+
+```mermaid
+flowchart LR
+    subgraph Swarm["Agy Swarm (agy1..agyn)"]
+        Agent["Antigravity Agent<br/>(Auto-Approved YOLO Mode)"]
+    end
+
+    subgraph Config["Shared Global Configuration (~/.gemini/config/mcp_config.json)"]
+        CDP["chrome-devtools<br/>(CDP Port 9222)"]
+        GH["github<br/>(Official GitHub API)"]
+        Pray["ctrl-alt-pray<br/>(Loop Breaker Engine)"]
+    end
+
+    subgraph Runtimes["Host Engines"]
+        Browser["Dedicated Headless Chrome<br/>(cgroups v2 800M quota)"]
+        GitHubAPI["GitHub Repos, PRs & Issues"]
+        Ledger["Falsifiable Experiment Ledger"]
+    end
+
+    Agent --> CDP & GH & Pray
+    CDP --> Browser
+    GH --> GitHubAPI
+    Pray --> Ledger
+```
+
+### 1. `chrome-devtools` (Real CDP Browser Vision)
+* **What it does**: Connects the agent directly to the local Chrome DevTools Protocol on port `9222`. Enables taking full-page screenshots, inspecting console error logs, measuring DOM layout metrics, and executing arbitrary client JavaScript.
+* **Why it beats Puppeteer**: No bloated Node wrappers, no slow subprocess spawning. It attaches to the persistent systemd headless Chrome daemon in **<0.1s** with **80% lower RAM consumption**.
+* **Zero-Token**: Requires no API keys. Works out of the box.
+
+### 2. `github` (Deep GitHub API Integration)
+* **What it does**: Direct integration with the official `@modelcontextprotocol/server-github`. Allows the agent to inspect remote repositories, list pull requests, analyze commit histories, create issue comments, and review diffs without touching a web browser.
+* **Auto-Configuration**: When you set `GITHUB_TOKEN` in `.env` (or authenticate via `gh auth login`), `install.sh` automatically wires up your token into `mcp_config.json`.
+
+### 3. `ctrl-alt-pray` (Autonomous Loop Breaker)
+* **What it does**: An open-source anti-hallucination and loop-recovery engine. When an agent gets stuck in repetitive debugging loops, repeated test failures, or circular reasoning, it triggers `pray` to formulate falsifiable experiments and systematically break free.
+* **Zero-Token**: Runs via `npx -y ctrl-alt-pray@latest` with zero API dependencies.
+
+---
+
+### 🚀 Swarm-Wide Inheritance & Zero-Prompt Execution
+
+* **Shared Architecture**: `mcp_config.json` lives at `~/.gemini/config/mcp_config.json`, which sits outside the `~/.gemini/antigravity-cli` Bubblewrap mount. This means **every profile (`agy1`, `agy2`, `agy3` .. `agyN`) inherits all MCP servers simultaneously** without duplicating configuration files!
+* **Zero Prompt Fatigue**: `templates/settings.json` pre-authorizes `"mcp(*)"` under permissions. The agent will never halt or prompt for confirmation when invoking MCP tools.
+
+### ➕ Adding Your Own MCP Servers
+To add custom MCP servers (e.g. SQLite, PostgreSQL, custom internal tools), simply add them to `~/.gemini/config/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "my-custom-db": {
+      "command": "npx",
+      "args": ["-y", "sqlite-mcp-server", "/path/to/database.db"]
+    }
+  }
+}
+```
+All swarm profiles will instantly pick up the new tools on their next session!
 
 ---
 
@@ -563,6 +633,7 @@ post-to-x --text "Staging dry-run test" --dry-run
 | **Background Daemons** | **Systemd & Cron** | Interactive CLI | Webhooks | Docker Daemon | Gateway / Cron |
 | **Remote Ops (Mobile)** | **Tailscale + Termius + TG** | SSH only | Cloud web only | Self-hosted Web | Telegram Gateway |
 | **Real Visual Test** | **Native Chrome CDP** | Headless MCP | Headless Snapshot | No | No |
+| **MCP Integration** | **Bundled & Auto-Approved** | Manual JSON | No | Manual JSON | No |
 | **Physical World Vision** | **Webcam (`/dev/video0`)** | No | No | No | No |
 | **Social Automation ($0)** | **Native CDP (Twitter/X)** | No | No | No | No |
 

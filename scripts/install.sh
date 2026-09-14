@@ -91,9 +91,9 @@ if [[ -n "${ENV_FILE}" ]]; then
 fi
 
 # ==============================================================================
-# [1/6] System & Environment Check
+# [1/7] System & Environment Check
 # ==============================================================================
-echo -e "${BOLD}${PURPLE}┌── [1/6] System & Environment Check${RESET}"
+echo -e "${BOLD}${PURPLE}┌── [1/7] System & Environment Check${RESET}"
 OS_NAME="$(uname -s)"
 if [[ "${OS_NAME}" != "Linux" ]]; then
   echo -e "  ${AMBER}● Notice:${RESET} Detected OS: ${OS_NAME}."
@@ -114,9 +114,9 @@ mkdir -p "${PROFILES_BASE}"
 mkdir -p "${WORKSPACES_DIR}"
 
 # ==============================================================================
-# [2/6] Core Dependencies (Git, Bubblewrap, Node.js, jq)
+# [2/7] Core Dependencies (Git, Bubblewrap, Node.js, jq)
 # ==============================================================================
-echo -e "\n${BOLD}${PURPLE}┌── [2/6] Core Dependencies Check & Bootstrap${RESET}"
+echo -e "\n${BOLD}${PURPLE}┌── [2/7] Core Dependencies Check & Bootstrap${RESET}"
 
 # Package manager helper
 install_pkg() {
@@ -178,9 +178,9 @@ if ! command -v jq &>/dev/null; then
 fi
 
 # ==============================================================================
-# [3/6] Developer & Git Identity (Pre-flight .env or Interactive Validation)
+# [3/7] Developer & Git Identity (Pre-flight .env or Interactive Validation)
 # ==============================================================================
-echo -e "\n${BOLD}${PURPLE}┌── [3/6] Developer & Git Identity${RESET}"
+echo -e "\n${BOLD}${PURPLE}┌── [3/7] Developer & Git Identity${RESET}"
 
 GIT_USER="$(git config --global user.name 2>/dev/null || true)"
 GIT_EMAIL="$(git config --global user.email 2>/dev/null || true)"
@@ -286,9 +286,9 @@ else
 fi
 
 # ==============================================================================
-# [4/6] Passwordless Sudo (Autonomous YOLO Mode)
+# [4/7] Passwordless Sudo (Autonomous YOLO Mode)
 # ==============================================================================
-echo -e "${BOLD}${PURPLE}┌── [4/6] Passwordless Sudo (Autonomous YOLO Mode)${RESET}"
+echo -e "${BOLD}${PURPLE}┌── [4/7] Passwordless Sudo (Autonomous YOLO Mode)${RESET}"
 
 if sudo -n true 2>/dev/null; then
   echo -e "  ${GREEN}✔ Passwordless sudo is already active (NOPASSWD: ALL).${RESET}"
@@ -322,9 +322,9 @@ else
 fi
 
 # ==============================================================================
-# [5/6] Antigravity CLI & Swarm Tooling
+# [5/7] Antigravity CLI & Swarm Tooling
 # ==============================================================================
-echo -e "\n${BOLD}${PURPLE}┌── [5/6] Antigravity CLI & Swarm Tooling${RESET}"
+echo -e "\n${BOLD}${PURPLE}┌── [5/7] Antigravity CLI & Swarm Tooling${RESET}"
 
 # Check agy binary
 if command -v agy &>/dev/null || [[ -x "${BIN_DIR}/agy" ]]; then
@@ -435,7 +435,123 @@ if [[ -n "${TAILSCALE_AUTHKEY:-}" ]] && command -v tailscale &>/dev/null; then
 fi
 
 # ==============================================================================
-# [6/6] Launchpad & Summary
+# [6/7] Out-of-the-Box MCP Suite & Background Daemons
+# ==============================================================================
+echo -e "\n${BOLD}${PURPLE}┌── [6/7] Out-of-the-Box MCP Suite & Background Daemons${RESET}"
+
+GEMINI_CONFIG_DIR="${HOME}/.gemini/config"
+mkdir -p "${GEMINI_CONFIG_DIR}"
+MCP_CONFIG_FILE="${GEMINI_CONFIG_DIR}/mcp_config.json"
+MCP_TEMPLATE="${ROOT_DIR}/templates/mcp_config.json"
+
+# Detect GitHub token (from .env or gh CLI)
+GH_MCP_TOKEN="${GITHUB_TOKEN:-}"
+if [[ -z "${GH_MCP_TOKEN}" ]] && command -v gh &>/dev/null; then
+  GH_MCP_TOKEN="$(gh auth token 2>/dev/null || true)"
+fi
+
+# Deploy / Merge mcp_config.json
+if command -v node &>/dev/null; then
+  node -e '
+    const fs = require("fs");
+    const target = process.argv[1];
+    const template = process.argv[2];
+    const ghToken = process.argv[3];
+
+    let current = { mcpServers: {} };
+    if (fs.existsSync(target)) {
+      try {
+        current = JSON.parse(fs.readFileSync(target, "utf8"));
+        if (!current.mcpServers) current.mcpServers = {};
+      } catch (e) {
+        current = { mcpServers: {} };
+      }
+    }
+
+    let defaultServers = {};
+    if (fs.existsSync(template)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(template, "utf8"));
+        defaultServers = parsed.mcpServers || {};
+      } catch (e) {}
+    }
+
+    // Merge default servers (preserving existing custom ones)
+    current.mcpServers = { ...defaultServers, ...current.mcpServers };
+
+    // Inject / update github MCP server if token is present
+    if (ghToken && ghToken.trim().length > 0) {
+      current.mcpServers["github"] = {
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-github"],
+        env: {
+          GITHUB_PERSONAL_ACCESS_TOKEN: ghToken.trim()
+        }
+      };
+    }
+
+    fs.writeFileSync(target, JSON.stringify(current, null, 2) + "\n");
+  ' "${MCP_CONFIG_FILE}" "${MCP_TEMPLATE}" "${GH_MCP_TOKEN}"
+elif command -v jq &>/dev/null; then
+  if [[ ! -f "${MCP_CONFIG_FILE}" ]]; then
+    cp "${MCP_TEMPLATE}" "${MCP_CONFIG_FILE}"
+  fi
+  if [[ -n "${GH_MCP_TOKEN}" ]]; then
+    TMP_MCP="$(mktemp)"
+    jq --arg tok "${GH_MCP_TOKEN}" \
+      '.mcpServers.github = {"command":"npx","args":["-y","@modelcontextprotocol/server-github"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":$tok}}' \
+      "${MCP_CONFIG_FILE}" > "${TMP_MCP}" && mv "${TMP_MCP}" "${MCP_CONFIG_FILE}"
+  fi
+else
+  if [[ ! -f "${MCP_CONFIG_FILE}" ]]; then
+    cp "${MCP_TEMPLATE}" "${MCP_CONFIG_FILE}"
+  fi
+fi
+
+echo -e "  ${GREEN}✔ Global MCP configuration ready at ${MCP_CONFIG_FILE}${RESET}"
+echo -e "    ${PURPLE}•${RESET} ${BOLD}chrome-devtools:${RESET} CDP browser automation (port 9222)"
+echo -e "    ${PURPLE}•${RESET} ${BOLD}ctrl-alt-pray:${RESET} Anti-hallucination & loop recovery engine"
+if [[ -n "${GH_MCP_TOKEN}" ]]; then
+  echo -e "    ${PURPLE}•${RESET} ${BOLD}github:${RESET} Full GitHub API access via personal access token"
+else
+  echo -e "    ${PURPLE}•${RESET} ${SLATE}github: Skipped (add GITHUB_TOKEN in .env to auto-enable)${RESET}"
+fi
+echo -e "    ${GREEN}✔ Zero-prompt auto-approval active: 'mcp(*)' pre-authorized across all profiles.${RESET}"
+
+# Deploy Systemd Background Services & Headless Chrome Daemon
+SYSTEMD_USER_DIR="${HOME}/.config/systemd/user"
+mkdir -p "${SYSTEMD_USER_DIR}"
+
+if systemctl --user status &>/dev/null; then
+  # 1. Headless Chrome Daemon (port 9222)
+  if [[ -f "${ROOT_DIR}/templates/systemd/headless-chrome.service" ]]; then
+    cp "${ROOT_DIR}/templates/systemd/headless-chrome.service" "${SYSTEMD_USER_DIR}/headless-chrome.service"
+  fi
+  # 2. Host Hygiene Timers
+  if [[ -f "${ROOT_DIR}/templates/systemd/agy-cleanup.service" ]]; then
+    cp "${ROOT_DIR}/templates/systemd/agy-cleanup."* "${SYSTEMD_USER_DIR}/" 2>/dev/null || true
+  fi
+  if [[ -f "${ROOT_DIR}/templates/systemd/agy-watchdog.service" ]]; then
+    cp "${ROOT_DIR}/templates/systemd/agy-watchdog."* "${SYSTEMD_USER_DIR}/" 2>/dev/null || true
+  fi
+
+  systemctl --user daemon-reload 2>/dev/null || true
+  systemctl --user enable --now headless-chrome.service 2>/dev/null || true
+  systemctl --user enable --now agy-cleanup.timer 2>/dev/null || true
+  systemctl --user enable --now agy-watchdog.timer 2>/dev/null || true
+
+  if systemctl --user is-active --quiet headless-chrome.service; then
+    echo -e "  ${GREEN}✔ Dedicated Headless Chrome daemon active on port 9222 (0.1s launch, 800M quota).${RESET}"
+  else
+    echo -e "  ${SLATE}● Headless Chrome service installed (will start when Chrome binary is detected).${RESET}"
+  fi
+  echo -e "  ${GREEN}✔ Autonomous hygiene timers enabled (agy-cleanup.timer, agy-watchdog.timer).${RESET}"
+else
+  echo -e "  ${SLATE}● Systemd user session not detected (WSL/container without systemd). Skipping daemons.${RESET}"
+fi
+
+# ==============================================================================
+# [7/7] Launchpad & Summary
 # ==============================================================================
 echo ""
 echo -e "${GREEN}╭───────────────────────────────────────────────────────────────────╮${RESET}"
@@ -448,6 +564,7 @@ echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Log Pruner:${RESET}      ${CYAN}ag
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Workspaces Root:${RESET} ${CYAN}~/workspaces/<project-name>${RESET}"
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Git Author:${RESET}      ${SLATE}${GIT_USER:-Unset} <${GIT_EMAIL:-Unset}>${RESET}"
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Sudo Autonomy:${RESET}   $(sudo -n true 2>/dev/null && echo -e "${GREEN}Enabled (NOPASSWD)${RESET}" || echo -e "${AMBER}Requires Password${RESET}")"
+echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}MCP Server Suite:${RESET} ${GREEN}Active${RESET} ${SLATE}(chrome-devtools, ctrl-alt-pray$([[ -n "${GH_MCP_TOKEN}" ]] && echo ", github"))${RESET}"
 if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
   echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Telegram Alerts:${RESET} ${GREEN}Active${RESET} ${SLATE}(mobile briefing ready)${RESET}"
 fi
