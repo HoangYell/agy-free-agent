@@ -377,6 +377,7 @@ ln -sf "${ROOT_DIR}/bin/cleanroom-guard" "${BIN_DIR}/cleanroom-guard"
 ln -sf "${ROOT_DIR}/bin/agy-clean-logs" "${BIN_DIR}/agy-clean-logs"
 ln -sf "${ROOT_DIR}/bin/telegram-notify" "${BIN_DIR}/telegram-notify"
 ln -sf "${ROOT_DIR}/bin/telegram-bot" "${BIN_DIR}/telegram-bot"
+ln -sf "${ROOT_DIR}/bin/session-recall" "${BIN_DIR}/session-recall"
 ln -sf "${ROOT_DIR}/bin/post-to-x" "${BIN_DIR}/post-to-x"
 ln -sf "${ROOT_DIR}/scripts/keep-awake.sh" "${BIN_DIR}/keep-awake"
 
@@ -401,6 +402,20 @@ echo -e "  ${GREEN}✔ Primary Profile ('agy1') initialized with zero-prompt YOL
 if [[ ! -f "${HOME}/GEMINI.md" && -f "${ROOT_DIR}/templates/GEMINI.md" ]]; then
   cp "${ROOT_DIR}/templates/GEMINI.md" "${HOME}/GEMINI.md"
   echo -e "  ${GREEN}✔ Battle-tested autonomous persona deployed to ~/GEMINI.md.${RESET}"
+fi
+
+# Deploy bundled skills into ~/.agents/skills
+mkdir -p "${HOME}/.agents/skills"
+if [[ -d "${ROOT_DIR}/.agents/skills" ]]; then
+  for skill_dir in "${ROOT_DIR}/.agents/skills"/*; do
+    if [[ -d "${skill_dir}" ]]; then
+      skill_name="$(basename "${skill_dir}")"
+      if [[ ! -e "${HOME}/.agents/skills/${skill_name}" ]]; then
+        cp -r "${skill_dir}" "${HOME}/.agents/skills/${skill_name}"
+      fi
+    fi
+  done
+  echo -e "  ${GREEN}✔ Autonomous skills suite deployed to ~/.agents/skills.${RESET}"
 fi
 
 # Install Clean-room pre-commit hook
@@ -621,6 +636,7 @@ if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
   echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Telegram Bot:${RESET}    ${GREEN}Active (2-Way Control)${RESET} ${SLATE}(/status, /run, /agy from phone)${RESET}"
 fi
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}24/7 Keep-Awake:${RESET} ${SLATE}Run 'keep-awake --status' or 'keep-awake --apply'${RESET}"
+echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Session Recall:${RESET}  ${CYAN}session-recall <query>${RESET} ${SLATE}(photographic cross-session memory)${RESET}"
 if [[ -n "${X_AUTH_TOKEN:-}" ]]; then
   echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}X / Twitter:${RESET}     ${GREEN}Configured${RESET} ${SLATE}(post-to-x ready)${RESET}"
 fi

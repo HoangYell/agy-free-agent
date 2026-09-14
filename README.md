@@ -53,6 +53,9 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 * **📂 Canonical Workspace Standard (`~/workspaces`)**: Safe, structured workspace routing automatically trusted in agent permissions.
 * **⏰ Autonomous Scheduling (Cron & Systemd)**: Run automated background reviews, overnight issue triaging, and CI verification while you sleep.
 * **🔒 Isolated Auth Storage**: Google session tokens are compartmentalized per profile inside `~/.gemini-profiles/acc<N>/` via `bwrap`, while host tools (`git`, `ssh`, `docker`) remain natively accessible.
+* **🎭 Decisive, Senior Combat Persona**: Zero corporate doublespeak, zero fake hedging ("I hope this helps!"). Bluntly calls out bugs and roasts sloppy code, but always fixes issues to the root cause with production-grade engineering.
+* **🧠 Continuous Self-Learning & Self-Healing**: Relentless automated test-run-fix loops and proactive retrospectives. Codifies lessons learned into persistent skills (`~/.agents/skills/`) so friction never repeats.
+* **🔍 Photographic Recall (`session-recall`)**: Cross-session memory retrieval across all profile history logs (<5ms) and deep transcript forensics. Never suffers from amnesia.
 * **📱 2-Way Mobile Telegram Bridge (`telegram-bot`)**: Remotely command your Linux host from your phone (`/status`, `/run <cmd>`, `/agy <prompt>`, `/cam`, `/ip`, `/clean`, `/heal`) with zero npm dependencies and strict sender ID verification.
 * **💤 24/7 Keep-Awake Engine (`keep-awake`)**: Close your laptop lid without triggering sleep, mask systemd sleep/suspend targets, and disable Wi-Fi powersave to run a silent 24/7 home server.
 * **👁️ Physical World Vision (`/dev/video0`)**: Hardware webcam integration enabling the agent to visually inspect physical setups, user presence, and circuit boards.
@@ -351,6 +354,7 @@ sequenceDiagram
 | **`telegram-bot`** | Launch the 2-way interactive Telegram Command & Control daemon. |
 | **`telegram-notify`** | Dispatch real-time task alerts or status updates to Telegram. |
 | **`keep-awake`** | Configure laptop lid close ignore, sleep mask, and Wi-Fi powersave for 24/7 uptime. |
+| **`session-recall`** | Search prompt history (<5ms) and deep transcript forensics across all profiles. |
 | **`post-to-x`** | Publish tweets, threads, and media to X (Twitter) autonomously with zero API fees. |
 | **`cleanroom-guard`** | Audit staged git files for potential secret, token, or private key leaks. |
 
@@ -375,18 +379,29 @@ flowchart TD
     Agent --> T4
 ```
 
-1. **Tier 1: Global Identity & Core Guidelines (`~/GEMINI.md`)**:
+1. **Tier 1: Global Identity & Persona (`~/GEMINI.md`)**:
    * Injected into every session across all profiles.
-   * Encodes your persona, preferred coding standards, engineering principles, and forbidden patterns. Never compressed or lost.
+   * Encodes the agent's DNA: candid, unapologetically direct, zero corporate hedging, relentless action-first problem solving.
+   * Enforces the **Zero Recurrence Standard**: any bug or friction encountered once must be turned into an automated verification gate, pre-flight check, or explicit rule so it never repeats.
 2. **Tier 2: Project-Scoped Directives (`AGENTS.md` / `GEMINI.md`)**:
    * Placed in the root of any repository under `~/workspaces/<project>/`.
    * Tells the agent the exact architecture, database schemas, test commands, and styling conventions for that specific codebase.
 3. **Tier 3: Evolving Procedural Skill Memory (`~/.agents/skills/`)**:
-   * When the agent resolves a complex multi-step challenge (e.g. configuring a new build pipeline, Dockerizing a complex stack), it codifies the verified recipe into a skill.
-   * Written in standardized Technical English with executable scripts and templates. Shared automatically across all profiles (`agy1`..`agyn`).
-4. **Tier 4: Deep Session Forensics & Transcripts (`brain/`)**:
-   * Every command executed, reasoning chain, and tool step is recorded in compact `transcript.jsonl` files and indexed in SQLite (`conversation_summaries.db`).
-   * The agent can query past sessions to retrieve previous design decisions, historical outputs, and debugging trajectories.
+   * When the agent resolves a complex multi-step challenge (e.g. configuring a new build pipeline, Dockerizing a complex stack), it codifies the verified recipe into a skill (`SKILL.md`).
+   * Bundled with ready-to-use skills: `session-memory-forensics`, `autonomous-ops`, and `rigorous-visual-reviewer`. Shared automatically across all profiles (`agy1`..`agyn`).
+4. **Tier 4: Deep Session Forensics & Photographic Recall (`session-recall`)**:
+   * Every command executed, reasoning chain, and tool step is recorded in `transcript.jsonl` files and indexed across profiles.
+   * Zero amnesia: the agent (and you) can instantly query past sessions via `session-recall`:
+     ```bash
+     # Search prompt history across all profiles in <5ms:
+     session-recall "postgres migration"
+
+     # Deep search transcript contents (tool calls, terminal outputs, reasoning):
+     session-recall --deep "docker compose"
+
+     # List active profiles and history storage:
+     session-recall list-profiles
+     ```
 
 ---
 
