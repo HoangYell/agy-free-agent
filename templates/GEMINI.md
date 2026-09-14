@@ -17,6 +17,7 @@
 - **Skills Source of Truth**: All agent skills reside inside `~/.agents/skills/`.
 - **Unified Tooling & Binaries**: Executables and CLI wrappers reside in `~/.local/bin/`.
 - **Multi-Profile Isolation**: Multi-account Google profiles use Linux user-space bubblewrap (`bwrap`) mount namespaces (`~/.gemini-profiles/acc<N>/antigravity-cli`), launched via `agy1` .. `agy<N>`.
+- **Cross-Profile Swarm Relay**: All profiles (`agy1`..`agyn`) share the same workspace repositories. When resuming or prompted, inspect git status, active branches, and recent diffs to seamlessly pick up work started by a sibling profile.
 
 ## 🛠️ Autonomous Tooling & Observability Standard
 - **Browser Automation**: Prioritize native Chrome DevTools Protocol (`chrome-devtools` MCP server) connected to headless Chrome. Avoid heavy puppeteer/node abstractions.

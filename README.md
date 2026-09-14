@@ -33,6 +33,7 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 
 * **🆓 Zero API Keys Needed**: Authenticates natively via standard Google accounts. No credit cards, no pay-per-token metering.
 * **⚡ Multi-Profile Swarm (`agy1` .. `agy<N>`)**: Run multiple accounts in parallel across terminal tabs without credential collisions or quota interference.
+* **🔄 Cross-Profile Swarm Relay**: Hit rate limits on Account 1? Pass the baton from `agy1` to `agy2`—the incoming agent immediately picks up git state, uncommitted diffs, and finishes the job with zero downtime.
 * **📊 One-Key Quota Dashboard (`q`)**: Type `q` to instantly inspect live quota status, active process PIDs, CPU%, and memory usage across all profiles.
 * **🛡️ Full Machine Control (`sudo all`)**: Includes passwordless sudo automation so the agent can install packages (`apt`, `dnf`), restart systemd daemons, and manage Docker containers without hanging on password prompts.
 * **📂 Canonical Workspace Standard (`~/workspaces`)**: Safe, structured workspace routing automatically trusted in agent permissions.
@@ -112,6 +113,45 @@ agy-setup 2
 agy-setup 3
 ```
 Each command generates an isolated launcher (`agy2`, `agy3`) and pre-configures unrestricted permissions.
+
+---
+
+## 🔄 Cross-Profile Relay: Passing the Baton (`agy1` ➔ `agy2` ➔ `agyN`)
+
+The single biggest frustration with modern AI agents is the **rate limit ceiling**: right in the middle of a complex refactor or debugging loop, your quota runs out, killing your momentum.
+
+With **AgyFreeAgent**, your work never halts. You can pass the baton seamlessly from `agy1` to `agy2` like a relay race:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Developer
+    participant Agy1 as agy1 (Account 1)
+    participant FS as ~/workspaces/ & Git
+    participant Agy2 as agy2 (Account 2)
+
+    Dev->>Agy1: "Refactor database migrations for Postgres"
+    Agy1->>FS: Writes code, stages git changes, creates migration files
+    Note over Agy1: ⚠️ Hits 5-hour rate limit (Quota 100%)
+    Dev->>Agy2: "Pick up where agy1 left off: inspect git diff and finish the tests"
+    Agy2->>FS: Inspects git status, reads recent diffs & branch state
+    Agy2->>FS: Completes test suite and deploys
+    Agy2->>Dev: [✓] Task complete! Zero downtime.
+```
+
+### Why Task Handoff Works Seamlessly
+1. **Shared Workspace & Git Truth**: Both `agy1` and `agy2` operate on the exact same project repository inside `~/workspaces/<project>`. Uncommitted files, branches, and staged commits are immediately visible to the next agent.
+2. **Transparent Handoff Prompts**: To transition, simply launch the next profile with a continuation directive:
+   ```bash
+   agy2 --prompt "Inspect the current git status and branch history. Pick up the refactor started by agy1, fix the remaining failing tests, and run the build."
+   ```
+3. **Automated Swarm Relay Chaining**: You can even chain profiles in background terminal scripts:
+   ```bash
+   # agy1 writes its WIP notes to .handoff.md before exiting, and agy2 resumes immediately:
+   agy1 --prompt "Analyze bug #142 and write reproduction steps to .handoff.md" && \
+   agy2 --prompt "Read .handoff.md and implement the fix"
+   ```
+4. **Inspect Prior Reasoning**: Because all session transcripts are saved locally, `agy2` can inspect `~/.gemini/antigravity-cli/brain/` or `~/.gemini-profiles/` if it needs to review `agy1`'s exact tool calls or reasoning history.
 
 ---
 
