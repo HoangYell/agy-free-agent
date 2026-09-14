@@ -351,20 +351,22 @@ echo -e "\n${BOLD}${PURPLE}┌── [5/7] Antigravity CLI & Swarm Tooling${RESE
 if command -v agy &>/dev/null || [[ -x "${BIN_DIR}/agy" ]]; then
   echo -e "  ${GREEN}✔ Google Antigravity CLI ('agy') detected.${RESET}"
 else
-  INSTALL_AGY="${AUTO_INSTALL_AGY_NPM:-}"
-  if [[ -z "${INSTALL_AGY}" ]] && command -v npm &>/dev/null && [[ "${INTERACTIVE}" == "true" ]]; then
+  INSTALL_AGY="${AUTO_INSTALL_AGY:-${AUTO_INSTALL_AGY_NPM:-}}"
+  if [[ -z "${INSTALL_AGY}" ]] && [[ "${INTERACTIVE}" == "true" ]]; then
     echo -e "  ${AMBER}● Notice:${RESET} 'agy' binary is not yet installed in PATH or ${BIN_DIR}."
-    echo -ne "  ${CYAN}➜${RESET} Install '@google/antigravity-cli' globally via npm now? [Y/n]: "
+    echo -ne "  ${CYAN}➜${RESET} Install Google Antigravity CLI ('agy') via official installer now? [Y/n]: "
     read_prompt "" INSTALL_AGY
     INSTALL_AGY="${INSTALL_AGY:-y}"
   fi
 
-  if [[ "${INSTALL_AGY}" =~ ^[Yy]|true$ ]] && command -v npm &>/dev/null; then
-    echo -e "  ${CYAN}ℹ Installing @google/antigravity-cli via npm...${RESET}"
-    sudo npm install -g @google/antigravity-cli || npm install -g @google/antigravity-cli || true
+  if [[ "${INSTALL_AGY}" =~ ^[Yy]|true$ ]]; then
+    echo -e "  ${CYAN}ℹ Installing Antigravity CLI via https://antigravity.google/cli/install.sh...${RESET}"
+    curl -fsSL https://antigravity.google/cli/install.sh | bash || true
   fi
 
-  if ! command -v agy &>/dev/null && [[ ! -x "${BIN_DIR}/agy" ]]; then
+  if command -v agy &>/dev/null || [[ -x "${BIN_DIR}/agy" ]]; then
+    echo -e "  ${GREEN}✔ Google Antigravity CLI ('agy') installed successfully.${RESET}"
+  else
     echo -e "  ${SLATE}Download 'agy' from https://antigravity.google and place in ~/.local/bin/agy.${RESET}"
   fi
 fi
