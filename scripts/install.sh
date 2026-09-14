@@ -583,6 +583,20 @@ else
 fi
 
 # Optional 24/7 Keep-Awake Optimization
+IS_LAPTOP="false"
+if [[ -d /sys/class/power_supply ]] && ls /sys/class/power_supply 2>/dev/null | grep -qi 'BAT'; then
+  IS_LAPTOP="true"
+fi
+
+if [[ -z "${KEEP_AWAKE:-}" && "${INTERACTIVE}" == "true" && "${IS_LAPTOP}" == "true" ]]; then
+  echo -e "\n${BOLD}${PURPLE}┌── Laptop Hardware Detected${RESET}"
+  echo -e "  ${AMBER}● Notice:${RESET} Closing the laptop lid or idling normally suspends Linux,"
+  echo -e "    disconnecting SSH, Telegram bot, and background agent tasks."
+  echo -ne "  ${CYAN}➜${RESET} Enable 24/7 Keep-Awake now (ignore lid close & mask sleep)? [Y/n]: "
+  read_prompt "" KEEP_AWAKE
+  KEEP_AWAKE="${KEEP_AWAKE:-y}"
+fi
+
 if [[ "${KEEP_AWAKE:-}" =~ ^[Yy]|true$ ]]; then
   echo -e "  ${CYAN}ℹ Applying 24/7 Keep-Awake optimization (lid-close ignore, sleep mask)...${RESET}"
   bash "${ROOT_DIR}/scripts/keep-awake.sh" --apply || true
