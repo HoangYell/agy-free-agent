@@ -63,7 +63,63 @@ if ! command -v jq &>/dev/null; then
   fi
 fi
 
-# 4. Check agy binary
+# 4. Check Git & Developer Identity
+echo "[*] Checking Git & Developer Identity..."
+if ! command -v git &>/dev/null; then
+  echo "[!] 'git' is missing. Installing git..."
+  if command -v apt-get &>/dev/null; then
+    sudo apt-get update && sudo apt-get install -y git
+  elif command -v dnf &>/dev/null; then
+    sudo dnf install -y git
+  elif command -v pacman &>/dev/null; then
+    sudo pacman -S --noconfirm git
+  fi
+fi
+
+if command -v git &>/dev/null; then
+  GIT_USER="$(git config --global user.name 2>/dev/null || true)"
+  GIT_EMAIL="$(git config --global user.email 2>/dev/null || true)"
+
+  if [[ -z "${GIT_USER}" || -z "${GIT_EMAIL}" ]]; then
+    echo "[!] Notice: Git author identity is incomplete."
+    if [[ -t 0 ]]; then
+      if [[ -z "${GIT_USER}" ]]; then
+        read -r -p "    Enter your Git author name (e.g. John Doe): " input_user || true
+        if [[ -n "${input_user:-}" ]]; then
+          git config --global user.name "${input_user}"
+          GIT_USER="${input_user}"
+        fi
+      fi
+      if [[ -z "${GIT_EMAIL}" ]]; then
+        read -r -p "    Enter your Git author email (e.g. john@example.com): " input_email || true
+        if [[ -n "${input_email:-}" ]]; then
+          git config --global user.email "${input_email}"
+          GIT_EMAIL="${input_email}"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ -n "${GIT_USER}" && -n "${GIT_EMAIL}" ]]; then
+    echo "[✓] Git identity configured: ${GIT_USER} <${GIT_EMAIL}>"
+  else
+    echo "[!] WARNING: Git author identity is not set."
+    echo "    Autonomous agents will fail when running 'git commit' unless you configure:"
+    echo "      git config --global user.name \"Your Name\""
+    echo "      git config --global user.email \"your.email@example.com\""
+  fi
+
+  # Check GitHub Authentication (SSH or gh)
+  if [[ -f "${HOME}/.ssh/id_ed25519" || -f "${HOME}/.ssh/id_rsa" ]] || (command -v gh &>/dev/null && gh auth status &>/dev/null); then
+    echo "[✓] GitHub authentication detected (SSH key or gh CLI)."
+  else
+    echo "[*] Tip: For seamless autonomous git push/pull without password prompts:"
+    echo "    - Setup GitHub CLI:  gh auth login"
+    echo "    - Or create SSH key: ssh-keygen -t ed25519 -C \"${GIT_EMAIL:-git@agent}\""
+  fi
+fi
+
+# 5. Check agy binary
 echo "[*] Checking Google Antigravity CLI (agy)..."
 if command -v agy &>/dev/null || [[ -x "${BIN_DIR}/agy" ]]; then
   echo "[✓] 'agy' CLI binary detected."
@@ -72,18 +128,18 @@ else
   echo "    Get Antigravity CLI from https://antigravity.google or copy 'agy' to ~/.local/bin/agy."
 fi
 
-# 5. Create target directories
+# 6. Create target directories
 mkdir -p "${BIN_DIR}"
 mkdir -p "${PROFILES_BASE}"
 mkdir -p "${WORKSPACES_DIR}"
 
-# 6. Initialize .env from .env.example
+# 7. Initialize .env from .env.example
 if [[ ! -f "${ROOT_DIR}/.env" && -f "${ROOT_DIR}/.env.example" ]]; then
   cp "${ROOT_DIR}/.env.example" "${ROOT_DIR}/.env"
   echo "[✓] Initialized .env template."
 fi
 
-# 7. Link CLI tools into ~/.local/bin
+# 8. Link CLI tools into ~/.local/bin
 echo "[*] Linking CLI tools into ${BIN_DIR}..."
 ln -sf "${ROOT_DIR}/bin/agy-setup" "${BIN_DIR}/agy-setup"
 ln -sf "${ROOT_DIR}/bin/q" "${BIN_DIR}/q"
@@ -93,7 +149,7 @@ ln -sf "${ROOT_DIR}/bin/telegram-notify" "${BIN_DIR}/telegram-notify"
 
 chmod +x "${ROOT_DIR}/bin/agy-setup" "${ROOT_DIR}/bin/q" "${ROOT_DIR}/bin/cleanroom-guard" "${ROOT_DIR}/bin/agy-clean-logs" "${ROOT_DIR}/bin/telegram-notify" "${ROOT_DIR}/scripts/clean-logs.sh" "${ROOT_DIR}/scripts/telegram-notify.sh"
 
-# 8. Ensure ~/.local/bin is in PATH automatically
+# 9. Ensure ~/.local/bin is in PATH automatically
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
   echo "[*] Configuring ~/.local/bin in shell configuration..."
   if [[ -f "${HOME}/.bashrc" ]] && ! grep -q 'export PATH=.*\.local/bin' "${HOME}/.bashrc"; then
@@ -107,17 +163,17 @@ if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
   export PATH="${BIN_DIR}:${PATH}"
 fi
 
-# 9. Initialize agy1 (Primary profile)
+# 10. Initialize agy1 (Primary profile)
 echo "[*] Initializing Primary Profile (agy1)..."
 "${ROOT_DIR}/bin/agy-setup" 1
 
-# 6. Copy default persona GEMINI.md to ~/GEMINI.md if not present
+# 11. Copy default persona GEMINI.md to ~/GEMINI.md if not present
 if [[ ! -f "${HOME}/GEMINI.md" && -f "${ROOT_DIR}/templates/GEMINI.md" ]]; then
   echo "[*] Deploying battle-tested autonomous engineer persona to ~/GEMINI.md..."
   cp "${ROOT_DIR}/templates/GEMINI.md" "${HOME}/GEMINI.md"
 fi
 
-# 7. Setup git pre-commit hook in repo if in git
+# 12. Setup git pre-commit hook in repo if in git
 if [[ -d "${ROOT_DIR}/.git" ]]; then
   echo "[*] Installing clean-room pre-commit shield..."
   cat << 'HOOK' > "${ROOT_DIR}/.git/hooks/pre-commit"

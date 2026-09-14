@@ -90,11 +90,19 @@ Follow these simple steps to get your autonomous engineering swarm up and runnin
 
 ### 📋 Prerequisites (What You Need)
 1. **Operating System**: Linux (Ubuntu 20.04+, Debian, Fedora, Arch) or **Windows WSL2** (Ubuntu).
-2. **Google Account**: At least 1 Google account (Gmail or Workspace). No credit cards or billing setup needed.
-3. **Google Antigravity CLI (`agy`)**:
+2. **Git & Developer Identity**:
+   * Git installed with author name & email configured:
+     ```bash
+     git config --global user.name "Your Name"
+     git config --global user.email "your.email@example.com"
+     ```
+     *(Mandatory: without this, Git will reject autonomous agent commits with `Author identity unknown`).*
+   * GitHub authentication (SSH key or `gh auth login`) so your agent can push/pull repositories without password prompts.
+3. **Google Account**: At least 1 Google account (Gmail or Workspace). No credit cards or billing setup needed.
+4. **Google Antigravity CLI (`agy`)**:
    * Install via npm: `npm install -g @google/antigravity-cli`
    * Or get the official binary from [antigravity.google](https://antigravity.google) and place `agy` in `~/.local/bin/agy`.
-4. **Node.js**: Recommended for the live quota inspector (`q`). (Run `sudo apt install -y nodejs`).
+5. **Node.js**: Recommended for the live quota inspector (`q`). (Run `sudo apt install -y nodejs`).
 
 ---
 
@@ -121,9 +129,17 @@ cd ~/workspaces/agy-free-agent
 
 **What the installer does automatically:**
 * ✅ Checks or installs `bubblewrap` (`bwrap`) for zero-collision profile isolation.
+* ✅ Verifies Git & author identity (`user.name`, `user.email`) so agents can commit autonomously.
 * ✅ Links CLI tools (`agy1`, `agy-setup`, `q`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/`.
 * ✅ Creates your organized workspace folder at `~/workspaces/`.
 * ✅ Deploys pre-configured auto-approval permissions (no annoying confirmation prompts).
+
+> [!TIP]
+> **Git Identity**: If you haven't configured Git on your machine yet, set it before starting so your agent can commit code without errors:
+> ```bash
+> git config --global user.name "Your Name"
+> git config --global user.email "your.email@example.com"
+> ```
 
 ---
 
