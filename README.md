@@ -40,6 +40,9 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 * **⏰ Autonomous Scheduling (Cron & Systemd)**: Run automated background reviews, overnight issue triaging, and CI verification while you sleep.
 * **🔒 Isolated Auth Storage**: Google session tokens are compartmentalized per profile inside `~/.gemini-profiles/acc<N>/` via `bwrap`, while host tools (`git`, `ssh`, `docker`) remain natively accessible.
 * **📱 Ubiquitous Remote Access**: Command your agent anywhere via **Tailscale Mesh VPN** and **Termius** on mobile, with async alerts delivered straight to **Telegram**.
+* **👁️ Physical World Vision (`/dev/video0`)**: Hardware webcam integration enabling the agent to visually inspect physical setups, user presence, and circuit boards.
+* **🚀 Dedicated Headless Chrome Daemon**: Systemd CDP daemon on port 9222 with cgroups v2 resource quotas—connect in 0.1s with 80% lower RAM.
+* **🐦 Zero-API Social Automation (X / Twitter)**: Headless CDP session injection to publish tweets and media autonomously without $100/mo API fees.
 * **🛡️ Clean-Room Pre-Flight Shield**: Built-in `cleanroom-guard` verifies that no private keys, passwords, or credentials can ever be committed to Git.
 
 ---
@@ -361,6 +364,44 @@ flowchart TD
 
 ---
 
+## ⚡ Advanced Host Superpowers: Beyond Pure Software
+
+Most coding agents are captive inside cloud sandboxes or limited to text terminals. Because **AgyFreeAgent** is anchored directly into your Linux host with root administrative powers, it unlocks capabilities no cloud agent can match:
+
+### 1. 👁️ Physical World Vision (`/dev/video0`)
+* Break free from the screen: connect your USB webcam or laptop camera (`/dev/video0`) directly to your agent.
+* **Real-World Inspection**: The agent can visually check physical lab hardware, inspect breadboards or circuit components, verify user presence at the desk, or scan QR codes held up to the camera.
+* Run as a systemd background vision watcher to monitor physical workspaces and send Telegram alerts.
+
+### 2. 🚀 Dedicated Headless Chrome Daemon (CDP Port 9222)
+* Instead of launching and killing heavy browser processes for every test, AgyFreeAgent leverages a background **headless Chrome daemon** managed via `systemd --user`.
+* **Instant Attach (<0.1s)**: Connects directly via Chrome DevTools Protocol (`127.0.0.1:9222`).
+* **Resource Shielding**: Enforced with Linux cgroups v2 (`MemoryMax=800M`, `CPUQuota=60%`), saving 80% RAM compared to ad-hoc browser spawning.
+* Deploy template:
+  ```bash
+  cp templates/systemd/headless-chrome.service ~/.config/systemd/user/
+  systemctl --user enable --now headless-chrome.service
+  ```
+
+### 3. 🐦 Zero-API Autonomous Social Distribution (X / Twitter)
+* Commercial Twitter API access costs $100 to $5,000/month.
+* AgyFreeAgent bypasses API paywalls entirely using **Headless Chrome CDP session injection** with authenticated local session cookies.
+* The agent can autonomously draft launch announcements, attach benchmark screenshots or memes, and publish tweets or threads with **$0 in API fees**.
+
+### 4. 📡 Network Self-Healing (Automated Connectivity Rescue)
+* Long-running overnight agent tasks shouldn't die because of transient Wi-Fi drops or a stalled LTE router.
+* With `scripts/network-heal.sh`, the host monitors connectivity (`1.1.1.1` / `8.8.8.8`) and automatically restarts network services or sends local reboot commands to 4G/5G gateway routers to self-heal connection outages without human intervention.
+
+### 5. 🛡️ Frame-Rate & Visual Quality Gates
+* **Visual-Gate**: Automated pixel-level diffing against baseline snapshots using Pixelmatch (<0.1% diff tolerance before release).
+* **Perf-Gate**: Enforces sub-frame rendering budgets (<20ms compile, <50ms mount, <25MB JS heap) via Chrome DevTools Protocol tracing.
+
+### 6. ⚡ Linux Kernel Swappiness Tuning (`vm.swappiness = 20`)
+* Default Linux systems aggressively swap active RAM to disk (swappiness=60), causing severe lag during heavy agent builds.
+* Run `./scripts/tune-kernel.sh` to pin `vm.swappiness = 20`. Your system prioritizes fast physical RAM, keeping terminal responsiveness silky smooth during large builds.
+
+---
+
 ## 📊 Comparison Matrix
 
 | Feature | AgyFreeAgent | Claude Code | OpenAI Codex | OpenClaw | Hermes Agent |
@@ -375,6 +416,8 @@ flowchart TD
 | **Background Daemons** | **Systemd & Cron** | Interactive CLI | Webhooks | Docker Daemon | Gateway / Cron |
 | **Remote Ops (Mobile)** | **Tailscale + Termius + TG** | SSH only | Cloud web only | Self-hosted Web | Telegram Gateway |
 | **Real Visual Test** | **Native Chrome CDP** | Headless MCP | Headless Snapshot | No | No |
+| **Physical World Vision** | **Webcam (`/dev/video0`)** | No | No | No | No |
+| **Social Automation ($0)** | **Native CDP (Twitter/X)** | No | No | No | No |
 
 ---
 

@@ -1,0 +1,18 @@
+[Unit]
+Description=AgyFreeAgent Dedicated Headless Chrome Remote Debugging Daemon (CDP Port 9222)
+After=network.target
+StartLimitIntervalSec=60s
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c 'CHROME_BIN=$(command -v google-chrome || command -v chromium || echo "$HOME/.local/bin/chrome"); exec "$CHROME_BIN" --headless=new --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --no-sandbox --disable-dev-shm-usage --disable-gpu --user-data-dir=/tmp/shared_headless_chrome_profile about:blank'
+Restart=always
+RestartSec=2s
+CPUQuota=60%
+MemoryMax=800M
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
