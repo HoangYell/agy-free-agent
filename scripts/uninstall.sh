@@ -45,6 +45,7 @@ rm -f "${BIN_DIR}/q"
 rm -f "${BIN_DIR}/cleanroom-guard"
 rm -f "${BIN_DIR}/agy-clean-logs"
 rm -f "${BIN_DIR}/telegram-notify"
+rm -f "${BIN_DIR}/post-to-x"
 rm -f "${BIN_DIR}/agy"[0-9]* 2>/dev/null || true
 echo -e "  ${GREEN}✔ CLI symlinks removed.${RESET}"
 

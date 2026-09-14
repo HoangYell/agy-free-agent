@@ -355,8 +355,9 @@ ln -sf "${ROOT_DIR}/bin/q" "${BIN_DIR}/q"
 ln -sf "${ROOT_DIR}/bin/cleanroom-guard" "${BIN_DIR}/cleanroom-guard"
 ln -sf "${ROOT_DIR}/bin/agy-clean-logs" "${BIN_DIR}/agy-clean-logs"
 ln -sf "${ROOT_DIR}/bin/telegram-notify" "${BIN_DIR}/telegram-notify"
+ln -sf "${ROOT_DIR}/bin/post-to-x" "${BIN_DIR}/post-to-x"
 
-chmod +x "${ROOT_DIR}/bin/agy-setup" "${ROOT_DIR}/bin/q" "${ROOT_DIR}/bin/cleanroom-guard" "${ROOT_DIR}/bin/agy-clean-logs" "${ROOT_DIR}/bin/telegram-notify" "${ROOT_DIR}/scripts/clean-logs.sh" "${ROOT_DIR}/scripts/telegram-notify.sh" "${ROOT_DIR}/scripts/setup-sudo.sh"
+chmod +x "${ROOT_DIR}/bin/agy-setup" "${ROOT_DIR}/bin/q" "${ROOT_DIR}/bin/cleanroom-guard" "${ROOT_DIR}/bin/agy-clean-logs" "${ROOT_DIR}/bin/telegram-notify" "${ROOT_DIR}/bin/post-to-x" "${ROOT_DIR}/scripts/clean-logs.sh" "${ROOT_DIR}/scripts/telegram-notify.sh" "${ROOT_DIR}/scripts/setup-sudo.sh" "${ROOT_DIR}/scripts/uninstall.sh"
 
 # Ensure ~/.local/bin is in PATH
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
@@ -421,6 +422,11 @@ if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
   echo -e "  ${GREEN}✔ Telegram notifications configured${RESET} (Bot Token & Chat ID verified)."
 fi
 
+# X (Twitter) Integration Check
+if [[ -n "${X_AUTH_TOKEN:-}" ]]; then
+  echo -e "  ${GREEN}✔ Zero-API X (Twitter) Publisher configured${RESET} (auth_token cookie present)."
+fi
+
 # Optional Tailscale Mesh Network Setup
 if [[ -n "${TAILSCALE_AUTHKEY:-}" ]] && command -v tailscale &>/dev/null; then
   echo -e "  ${CYAN}ℹ Connecting to Tailscale mesh using TAILSCALE_AUTHKEY...${RESET}"
@@ -444,6 +450,9 @@ echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Git Author:${RESET}      ${SLATE}$
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Sudo Autonomy:${RESET}   $(sudo -n true 2>/dev/null && echo -e "${GREEN}Enabled (NOPASSWD)${RESET}" || echo -e "${AMBER}Requires Password${RESET}")"
 if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
   echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Telegram Alerts:${RESET} ${GREEN}Active${RESET} ${SLATE}(mobile briefing ready)${RESET}"
+fi
+if [[ -n "${X_AUTH_TOKEN:-}" ]]; then
+  echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}X / Twitter:${RESET}     ${GREEN}Configured${RESET} ${SLATE}(post-to-x ready)${RESET}"
 fi
 echo ""
 echo -e "  ${SLATE}───────────────────────────────────────────────────────────────────${RESET}"

@@ -116,6 +116,7 @@ nano .env   # (or use VS Code / Cursor: cursor .env)
 * **`AGY_PROFILES_COUNT="2"`**: Auto-provisions Profile 1 (`agy1`) and Profile 2 (`agy2`) for unlimited quota relay.
 * **`TELEGRAM_BOT_TOKEN` & `TELEGRAM_CHAT_ID`**: *(Optional)* Real-time phone alerts & task briefings.
 * **`GITHUB_TOKEN`**: *(Optional)* Auto-authenticates GitHub CLI for cloning and pushing private repositories.
+* **`X_AUTH_TOKEN`**: *(Optional)* Zero-API autonomous posting to X (Twitter) without $100/mo developer fees.
 
 ---
 
@@ -129,7 +130,7 @@ nano .env   # (or use VS Code / Cursor: cursor .env)
 * ✦ Auto-installs missing dependencies (`bubblewrap`, `git`, `nodejs`, `jq`).
 * ✦ Configures passwordless sudo (`/etc/sudoers.d/agy-agent`) and Ed25519 SSH keys.
 * ✦ Deploys zero-prompt YOLO permissions (`settings.json`) and autonomous engineer persona (`GEMINI.md`).
-* ✦ Links CLI tools (`agy1`, `agy2`, `q`, `cleanroom-guard`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/`.
+* ✦ Links CLI tools (`agy1`, `agy2`, `q`, `cleanroom-guard`, `post-to-x`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/`.
 
 > [!TIP]
 > **No `.env` file?** You can also run `./scripts/install.sh` directly without creating `.env`. The installer will launch an interactive terminal wizard with live validation loops instead.
@@ -275,6 +276,7 @@ sequenceDiagram
 | **`q`** | Check live quota status, OAuth session validity, and running PIDs across all accounts. |
 | **`agy-clean-logs`** | Prune stale session logs (>7 days) and vacuum journalctl storage. |
 | **`telegram-notify`** | Dispatch real-time task alerts or status updates to Telegram. |
+| **`post-to-x`** | Publish tweets, threads, and media to X (Twitter) autonomously with zero API fees. |
 | **`cleanroom-guard`** | Audit staged git files for potential secret, token, or private key leaks. |
 
 ---
@@ -510,9 +512,28 @@ Most coding agents are captive inside cloud sandboxes or limited to text termina
   ```
 
 ### 3. 🐦 Zero-API Autonomous Social Distribution (X / Twitter)
-* Commercial Twitter API access costs $100 to $5,000/month.
-* AgyFreeAgent bypasses API paywalls entirely using **Headless Chrome CDP session injection** with authenticated local session cookies.
-* The agent can autonomously draft launch announcements, attach benchmark screenshots or memes, and publish tweets or threads with **$0 in API fees**.
+Commercial Twitter API access costs $100 to $5,000/month. AgyFreeAgent bypasses API paywalls entirely using **Headless Chrome CDP session injection** via the included **`post-to-x`** tool.
+
+#### How to setup in 10 seconds:
+1. Open [x.com](https://x.com) in your browser (make sure you are logged in).
+2. Press `F12` (or right-click -> Inspect) -> `Application` tab -> `Cookies` -> `https://x.com`.
+3. Double-click and copy the value of `auth_token` and paste it into `X_AUTH_TOKEN` in your `.env`.
+
+#### Autonomous CLI Usage:
+```bash
+# 1. Post a single tweet:
+post-to-x --text "Autonomous engineering on Linux powered by AgyFreeAgent!"
+
+# 2. Post with media/screenshot attachment:
+post-to-x --text "Visual regression report attached:" --image /path/to/diff.png
+
+# 3. Post a multi-tweet thread:
+post-to-x --thread-file /path/to/thread.json
+
+# 4. Dry-run mode (verifies login and DOM readiness without publishing):
+post-to-x --text "Staging dry-run test" --dry-run
+```
+*Features automatic 280-character budget calculation, headless Chrome auto-launch on port 9222, media upload dispatching, and verification screenshots of every published post.*
 
 ### 4. 📡 Network Self-Healing (Automated Connectivity Rescue)
 * Long-running overnight agent tasks shouldn't die because of transient Wi-Fi drops or a stalled LTE router.

@@ -1,0 +1,618 @@
+#!/usr/bin/env node
+/**
+ * AgyFreeAgent - Autonomous X (Twitter) Publisher via Chrome CDP
+ * "No API keys. No $100/mo developer subscriptions. Just your browser session."
+ * 
+ * Capabilities:
+ *   - Native cookie session injection (auth_token)
+ *   - Automatic character budgeting (280 limit with 23-char t.co url weighting)
+ *   - Dynamic X client hydration waiting
+ *   - Modal compose targeting for root tweets
+ *   - Inline reply targeting for replies & threads
+ *   - Media attachment (PNG, JPEG, WebP)
+ *   - Thread publication (--thread-file <json_file>)
+ *   - Dry-run verification mode
+ *   - Automatic before/after screenshot proof
+ *   - Auto-spawns Headless Chrome on port 9222 if not running
+ * 
+ * Usage:
+ *   post-to-x --text "Hello from my autonomous AI agent on Linux!"
+ *   post-to-x --text "Check out this screenshot" --image /path/to/img.png
+ *   post-to-x --text "Reply tweet" --reply-to "https://x.com/user/status/123"
+ *   post-to-x --thread-file /path/to/thread.json
+ *   post-to-x --text "Preview test" --dry-run
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { execSync, spawn } from 'node:child_process';
+
+const CDP_HTTP = process.env.CDP_HTTP || 'http://127.0.0.1:9222';
+
+// Parse command line arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const options = {
+    text: '',
+    image: null,
+    replyTo: null,
+    threadFile: null,
+    dryRun: false,
+    screenshot: null,
+    token: null
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--text' && args[i + 1]) {
+      options.text = args[++i];
+    } else if (arg === '--image' && args[i + 1]) {
+      options.image = args[++i];
+    } else if (arg === '--reply-to' && args[i + 1]) {
+      options.replyTo = args[++i];
+    } else if (arg === '--thread-file' && args[i + 1]) {
+      options.threadFile = args[++i];
+    } else if (arg === '--dry-run') {
+      options.dryRun = true;
+    } else if (arg === '--screenshot' && args[i + 1]) {
+      options.screenshot = args[++i];
+    } else if (arg === '--token' && args[i + 1]) {
+      options.token = args[++i];
+    }
+  }
+
+  return options;
+}
+
+// Calculate Twitter weighted character length (URLs = 23 chars, emojis = 2 chars)
+function getTwitterLength(text) {
+  const urlRegex = /https?:\/\/[^\s]+/g;
+  const normalized = text.replace(urlRegex, 'X'.repeat(23));
+  let count = 0;
+  for (const ch of normalized) {
+    count += ch.codePointAt(0) > 0x7f ? 2 : 1;
+  }
+  return count;
+}
+
+// Resolve auth_token from CLI, env, .env, or credential store
+function resolveToken(cliToken) {
+  if (cliToken) return cliToken;
+  if (process.env.X_AUTH_TOKEN) return process.env.X_AUTH_TOKEN;
+  if (process.env.TWITTER_AUTH_TOKEN) return process.env.TWITTER_AUTH_TOKEN;
+
+  // Check .env candidates
+  const envCandidates = [
+    path.join(process.cwd(), '.env'),
+    path.join(os.homedir(), 'workspaces', 'agy-free-agent', '.env'),
+    path.join(os.homedir(), '.env')
+  ];
+
+  for (const envPath of envCandidates) {
+    if (fs.existsSync(envPath)) {
+      try {
+        const content = fs.readFileSync(envPath, 'utf8');
+        const match = content.match(/^X_AUTH_TOKEN=["']?([^"'\r\n]+)["']?/m);
+        if (match && match[1]) return match[1];
+      } catch (e) {}
+    }
+  }
+
+  const credPath = path.join(os.homedir(), '.config', 'x-credentials.json');
+  if (fs.existsSync(credPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+      if (data.auth_token) return data.auth_token;
+    } catch (e) {}
+  }
+
+  return null;
+}
+
+// Normalize reply-to URL
+function normalizeReplyUrl(urlOrId) {
+  if (!urlOrId) return null;
+  if (urlOrId.startsWith('http')) return urlOrId;
+  return `https://x.com/i/status/${urlOrId.replace(/[^0-9]/g, '')}`;
+}
+
+// Ensure Headless Chrome is running on port 9222
+async function ensureChromeRunning() {
+  try {
+    const res = await fetch(`${CDP_HTTP}/json/version`);
+    if (res.ok) return;
+  } catch (e) {
+    // Chrome not running, attempt auto-launch
+  }
+
+  console.log('[*] Headless Chrome not responding on port 9222. Attempting auto-launch...');
+
+  // Try user systemd unit if active/present
+  try {
+    execSync('systemctl --user start headless-chrome 2>/dev/null');
+    await new Promise(r => setTimeout(r, 1500));
+    const res = await fetch(`${CDP_HTTP}/json/version`);
+    if (res.ok) {
+      console.log('[✓] Headless Chrome started via systemd daemon.');
+      return;
+    }
+  } catch (e) {}
+
+  // Standalone binary launch
+  const candidates = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
+  let chromeBin = null;
+  for (const bin of candidates) {
+    try {
+      execSync(`which ${bin} 2>/dev/null`);
+      chromeBin = bin;
+      break;
+    } catch (e) {}
+  }
+
+  if (!chromeBin) {
+    throw new Error('Chrome/Chromium executable not found. Please install google-chrome or chromium.');
+  }
+
+  console.log(`[*] Launching ${chromeBin} in headless remote debugging mode...`);
+  const child = spawn(chromeBin, [
+    '--headless=new',
+    '--remote-debugging-port=9222',
+    '--remote-debugging-address=127.0.0.1',
+    '--no-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--user-data-dir=/tmp/shared_headless_chrome_profile',
+    'about:blank'
+  ], { detached: true, stdio: 'ignore' });
+  child.unref();
+
+  for (let i = 0; i < 12; i++) {
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      const res = await fetch(`${CDP_HTTP}/json/version`);
+      if (res.ok) {
+        console.log('[✓] Headless Chrome started successfully on port 9222.');
+        return;
+      }
+    } catch (e) {}
+  }
+
+  throw new Error('Timeout waiting for Headless Chrome on port 9222.');
+}
+
+// Establish CDP session on a newly created tab
+async function openTabWithAuth(url, token) {
+  await ensureChromeRunning();
+
+  console.log(`Opening fresh tab: ${url}...`);
+  const targetTab = await fetch(`${CDP_HTTP}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' }).then(r => r.json());
+  const ws = new WebSocket(targetTab.webSocketDebuggerUrl);
+  await new Promise(r => ws.onopen = r);
+
+  let msgId = 1;
+  const callbacks = new Map();
+
+  function send(method, params = {}) {
+    return new Promise((resolve) => {
+      const id = msgId++;
+      callbacks.set(id, resolve);
+      ws.send(JSON.stringify({ id, method, params }));
+    });
+  }
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.id && callbacks.has(data.id)) {
+      const resolve = callbacks.get(data.id);
+      callbacks.delete(data.id);
+      resolve(data.result);
+    }
+  };
+
+  await send('Network.enable');
+  await send('Page.enable');
+  await send('DOM.enable');
+
+  await send('Network.setUserAgentOverride', {
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'
+  });
+
+  await send('Network.setCookie', {
+    name: 'auth_token',
+    value: token,
+    domain: '.x.com',
+    path: '/',
+    secure: true,
+    httpOnly: true,
+    sameSite: 'None'
+  });
+  await send('Network.setCookie', {
+    name: 'auth_token',
+    value: token,
+    domain: '.twitter.com',
+    path: '/',
+    secure: true,
+    httpOnly: true,
+    sameSite: 'None'
+  });
+
+  return { targetTab, ws, send };
+}
+
+// Single tweet publishing core
+async function publishSingleTweet({ text, image, replyTo, dryRun, screenshot, token }) {
+  const tweetWeight = getTwitterLength(text);
+  console.log(`Tweet character count (weighted): ${tweetWeight}/280`);
+  if (tweetWeight > 280) {
+    throw new Error(`Tweet exceeds 280 characters (${tweetWeight}/280): "${text.slice(0, 40)}..."`);
+  }
+
+  const isReply = !!replyTo;
+  const initialUrl = isReply ? normalizeReplyUrl(replyTo) : 'https://x.com/compose/post';
+
+  let session = null;
+  try {
+    session = await openTabWithAuth(initialUrl, token);
+    const { send } = session;
+
+    if (isReply) {
+      // INLINE REPLY FLOW
+      console.log('Waiting for inline reply box to mount...');
+      let replyBoxReady = false;
+      for (let s = 1; s <= 25; s++) {
+        await new Promise(r => setTimeout(r, 1000));
+        const check = await send('Runtime.evaluate', {
+          expression: `(() => {
+            const area = document.querySelector('[data-testid="tweetTextarea_0"] [contenteditable="true"]') ||
+                         document.querySelector('[contenteditable="true"]');
+            return { ready: !!area };
+          })()`,
+          returnByValue: true
+        });
+
+        if (check?.result?.value?.ready) {
+          console.log(`Inline reply editor ready after ${s}s!`);
+          replyBoxReady = true;
+          break;
+        }
+      }
+
+      if (!replyBoxReady) {
+        throw new Error('Timeout waiting for inline reply editor on status page.');
+      }
+
+      // Focus inline editor
+      console.log('Focusing inline reply editor...');
+      const focusRes = await send('Runtime.evaluate', {
+        expression: `(() => {
+          const area = document.querySelector('[data-testid="tweetTextarea_0"] [contenteditable="true"]') ||
+                       document.querySelector('[contenteditable="true"]');
+          if (!area) return null;
+          area.focus();
+          const r = area.getBoundingClientRect();
+          return { x: Math.round(r.left + 25), y: Math.round(r.top + 15) };
+        })()`,
+        returnByValue: true
+      });
+
+      const coord = focusRes?.result?.value;
+      if (coord) {
+        await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: coord.x, y: coord.y, button: 'left', clickCount: 1 });
+        await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: coord.x, y: coord.y, button: 'left', clickCount: 1 });
+      }
+
+      await new Promise(r => setTimeout(r, 400));
+      await send('Input.insertText', { text });
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Check Reply button
+      console.log('Checking Reply button readiness...');
+      let btnInfo = null;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const btnRes = await send('Runtime.evaluate', {
+          expression: `(() => {
+            const btn = document.querySelector('[data-testid="tweetButtonInline"]') || 
+                        document.querySelector('[data-testid="tweetButton"]');
+            if (!btn) return { found: false };
+            btn.scrollIntoView({ block: 'center', inline: 'center' });
+            const rect = btn.getBoundingClientRect();
+            const disabled = btn.disabled || btn.getAttribute('aria-disabled') === 'true';
+            return {
+              found: true,
+              disabled,
+              text: btn.innerText,
+              x: rect.x + rect.width / 2,
+              y: rect.y + rect.height / 2
+            };
+          })()`,
+          returnByValue: true
+        });
+
+        btnInfo = btnRes?.result?.value;
+        if (btnInfo && btnInfo.found && !btnInfo.disabled) break;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      if (!btnInfo || !btnInfo.found) throw new Error('Reply button not found.');
+      if (btnInfo.disabled) throw new Error('Reply button is disabled.');
+
+      const defaultShotPath = screenshot || `/tmp/x_reply_preview_${Date.now()}.png`;
+      const previewShot = await send('Page.captureScreenshot', { format: 'png' });
+      fs.writeFileSync(defaultShotPath, Buffer.from(previewShot.data, 'base64'));
+      console.log(`Preview screenshot saved to: ${defaultShotPath}`);
+
+      if (dryRun) {
+        console.log('✓ Dry-run complete: Reply button verified ready. No reply published.');
+        return { success: true, previewScreenshot: defaultShotPath, dryRun: true };
+      }
+
+      // Click reply
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: btnInfo.x, y: btnInfo.y });
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: btnInfo.x, y: btnInfo.y, button: 'left', clickCount: 1 });
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: btnInfo.x, y: btnInfo.y, button: 'left', clickCount: 1 });
+
+      console.log('Waiting 8 seconds for reply publication...');
+      await new Promise(r => setTimeout(r, 8000));
+
+      const postShot = await send('Page.captureScreenshot', { format: 'png' });
+      const finalShotPath = screenshot ? screenshot.replace('.png', '_posted.png') : `/tmp/x_reply_posted_${Date.now()}.png`;
+      fs.writeFileSync(finalShotPath, Buffer.from(postShot.data, 'base64'));
+      console.log(`Reply confirmation screenshot saved to: ${finalShotPath}`);
+
+      return { success: true, url: initialUrl, screenshot: finalShotPath };
+
+    } else {
+      // ROOT TWEET COMPOSE MODAL FLOW
+      console.log('Waiting for X client hydration...');
+      let hydrated = false;
+      for (let s = 1; s <= 25; s++) {
+        await new Promise(r => setTimeout(r, 1000));
+        const check = await send('Runtime.evaluate', {
+          expression: `(() => {
+            const hasSidebar = !!document.querySelector('[data-testid="SideNav_NewTweet_Button"]');
+            const hasFeed = !!document.querySelector('[data-testid="primaryColumn"]');
+            const hasDialog = !!document.querySelector('[role="dialog"]');
+            return { loaded: hasSidebar || hasFeed || hasDialog };
+          })()`,
+          returnByValue: true
+        });
+
+        if (check?.result?.value?.loaded) {
+          console.log(`X loaded after ${s}s!`);
+          hydrated = true;
+          break;
+        }
+      }
+
+      if (!hydrated) {
+        throw new Error('Timeout waiting for X client to hydrate.');
+      }
+
+      // Ensure compose modal is open
+      console.log('Ensuring compose modal is open...');
+      await send('Runtime.evaluate', {
+        expression: `(() => {
+          const dialog = document.querySelector('[role="dialog"]');
+          if (!dialog) {
+            const sideBtn = document.querySelector('[data-testid="SideNav_NewTweet_Button"]');
+            if (sideBtn) sideBtn.click();
+          }
+        })()`
+      });
+
+      await new Promise(r => setTimeout(r, 1500));
+
+      // Focus editor
+      console.log('Focusing modal editor...');
+      let editorFocused = false;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const editorCoord = await send('Runtime.evaluate', {
+          expression: `(() => {
+            const editable = document.querySelector('[role="dialog"] [contenteditable="true"]') || 
+                             document.querySelector('[contenteditable="true"]');
+            if (editable) {
+              editable.focus();
+              const rect = editable.getBoundingClientRect();
+              return { found: true, x: Math.round(rect.left + 25), y: Math.round(rect.top + 25) };
+            }
+            return { found: false };
+          })()`,
+          returnByValue: true
+        });
+
+        const targetCoord = editorCoord?.result?.value;
+        if (targetCoord?.found) {
+          console.log(`Clicking editor at (${targetCoord.x}, ${targetCoord.y})...`);
+          await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: targetCoord.x, y: targetCoord.y, button: 'left', clickCount: 1 });
+          await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: targetCoord.x, y: targetCoord.y, button: 'left', clickCount: 1 });
+          editorFocused = true;
+          break;
+        }
+        await new Promise(r => setTimeout(r, 600));
+      }
+
+      if (!editorFocused) {
+        throw new Error('Unable to locate or focus modal Draft.js contenteditable editor.');
+      }
+
+      await new Promise(r => setTimeout(r, 400));
+      await send('Input.insertText', { text });
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Attach image if specified
+      if (image && fs.existsSync(image)) {
+        console.log(`Attaching image: ${image}...`);
+        const doc = await send('DOM.getDocument');
+        const fileInputNode = await send('DOM.querySelector', {
+          nodeId: doc.root.nodeId,
+          selector: 'input[data-testid="fileInput"]'
+        });
+
+        if (fileInputNode && fileInputNode.nodeId) {
+          await send('DOM.setFileInputFiles', {
+            nodeId: fileInputNode.nodeId,
+            files: [path.resolve(image)]
+          });
+
+          await send('Runtime.evaluate', {
+            expression: `(() => {
+              const input = document.querySelector('input[data-testid="fileInput"]');
+              if (input) input.dispatchEvent(new Event('change', { bubbles: true }));
+            })()`
+          });
+
+          console.log('Waiting 6s for media upload...');
+          await new Promise(r => setTimeout(r, 6000));
+        }
+      }
+
+      // Check Post button in modal
+      console.log('Checking Post button readiness...');
+      let btnInfo = null;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const btnRes = await send('Runtime.evaluate', {
+          expression: `(() => {
+            const btn = document.querySelector('[role="dialog"] [data-testid="tweetButton"]') || 
+                        document.querySelector('[data-testid="tweetButton"]');
+            if (!btn) return { found: false };
+            btn.scrollIntoView({ block: 'center', inline: 'center' });
+            const rect = btn.getBoundingClientRect();
+            const disabled = btn.disabled || btn.getAttribute('aria-disabled') === 'true';
+            return {
+              found: true,
+              disabled,
+              text: btn.innerText,
+              x: rect.x + rect.width / 2,
+              y: rect.y + rect.height / 2
+            };
+          })()`,
+          returnByValue: true
+        });
+
+        btnInfo = btnRes?.result?.value;
+        if (btnInfo && btnInfo.found && !btnInfo.disabled) break;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      if (!btnInfo || !btnInfo.found) throw new Error('Post button not found in modal.');
+      if (btnInfo.disabled) throw new Error('Post button is disabled.');
+
+      const defaultShotPath = screenshot || `/tmp/x_post_preview_${Date.now()}.png`;
+      const previewShot = await send('Page.captureScreenshot', { format: 'png' });
+      fs.writeFileSync(defaultShotPath, Buffer.from(previewShot.data, 'base64'));
+      console.log(`Preview screenshot saved to: ${defaultShotPath}`);
+
+      if (dryRun) {
+        console.log('✓ Dry-run complete: Post button verified ready. No tweet published.');
+        return { success: true, previewScreenshot: defaultShotPath, dryRun: true };
+      }
+
+      // Click Post button
+      console.log(`Dispatching click on Post button ("${btnInfo.text}")...`);
+      await send('Runtime.evaluate', {
+        expression: `(() => {
+          const btn = document.querySelector('[role="dialog"] [data-testid="tweetButton"]') || 
+                      document.querySelector('[data-testid="tweetButton"]');
+          if (btn) btn.click();
+        })()`
+      });
+
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: btnInfo.x, y: btnInfo.y });
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: btnInfo.x, y: btnInfo.y, button: 'left', clickCount: 1 });
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: btnInfo.x, y: btnInfo.y, button: 'left', clickCount: 1 });
+
+      console.log('Waiting 8 seconds for tweet publication...');
+      await new Promise(r => setTimeout(r, 8000));
+
+      const postShot = await send('Page.captureScreenshot', { format: 'png' });
+      const finalShotPath = screenshot ? screenshot.replace('.png', '_posted.png') : `/tmp/x_posted_${Date.now()}.png`;
+      fs.writeFileSync(finalShotPath, Buffer.from(postShot.data, 'base64'));
+      console.log(`Post confirmation screenshot saved to: ${finalShotPath}`);
+
+      return { success: true, screenshot: finalShotPath };
+    }
+  } finally {
+    if (session) {
+      try { session.ws.close(); } catch (e) {}
+      if (session.targetTab?.id) {
+        try { await fetch(`${CDP_HTTP}/json/close/${session.targetTab.id}`); } catch (e) {}
+      }
+    }
+  }
+}
+
+// Master execution entry point
+async function main() {
+  const options = parseArgs();
+  const token = resolveToken(options.token);
+  if (!token) {
+    console.error('Error: No X auth_token found.');
+    console.error('Configure X_AUTH_TOKEN in your .env file or pass via --token <auth_token>');
+    console.error('Tip: See .env.example for 10-second guide to copying auth_token from your browser.');
+    process.exit(1);
+  }
+
+  // Handle Thread JSON File mode
+  if (options.threadFile) {
+    if (!fs.existsSync(options.threadFile)) {
+      console.error(`Error: Thread file not found: ${options.threadFile}`);
+      process.exit(1);
+    }
+
+    const threadTweets = JSON.parse(fs.readFileSync(options.threadFile, 'utf8'));
+    if (!Array.isArray(threadTweets) || threadTweets.length === 0) {
+      console.error('Error: Thread file must contain a non-empty array of tweet objects.');
+      process.exit(1);
+    }
+
+    console.log(`Starting X Thread Publication (${threadTweets.length} tweets)...`);
+    let currentReplyTo = options.replyTo;
+
+    for (let i = 0; i < threadTweets.length; i++) {
+      const tweet = threadTweets[i];
+      console.log(`\n--- Publishing Thread Item [${i + 1}/${threadTweets.length}] ---`);
+      console.log(`Text: ${tweet.text.slice(0, 70)}...`);
+
+      const res = await publishSingleTweet({
+        text: tweet.text,
+        image: tweet.image || null,
+        replyTo: currentReplyTo,
+        dryRun: options.dryRun,
+        screenshot: `/tmp/thread_step_${i + 1}_${Date.now()}.png`,
+        token
+      });
+
+      if (!options.dryRun && res.url) {
+        currentReplyTo = res.url;
+        if (i < threadTweets.length - 1) {
+          console.log('Cooldown 5s before next tweet in thread...');
+          await new Promise(r => setTimeout(r, 5000));
+        }
+      }
+    }
+
+    console.log(`\n🎉 Thread Publication Complete!`);
+    return;
+  }
+
+  // Single Tweet mode
+  if (!options.text) {
+    console.error('Error: Either --text "Tweet content" or --thread-file <path> is required.');
+    process.exit(1);
+  }
+
+  await publishSingleTweet({
+    text: options.text,
+    image: options.image,
+    replyTo: options.replyTo,
+    dryRun: options.dryRun,
+    screenshot: options.screenshot,
+    token
+  });
+}
+
+main().catch(err => {
+  console.error('Fatal Error publishing to X:', err.message || err);
+  process.exit(1);
+});
