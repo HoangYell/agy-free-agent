@@ -96,138 +96,66 @@ Instead, AgyFreeAgent leaves host `$HOME` completely untouched, mounting only `~
 
 ---
 
-## 🚀 Setup Guide: From Zero to Autonomous in 3 Minutes
+## 🚀 60-Second Quickstart
 
-Follow these simple steps to get your autonomous engineering swarm up and running.
+AgyFreeAgent features a zero-prompt installer that reads your pre-filled `.env` file to set up your entire environment without interruptions.
 
-### 📋 Prerequisites (What You Need)
-1. **Operating System**: Linux (Ubuntu 20.04+, Debian, Fedora, Arch) or **Windows WSL2** (Ubuntu).
-2. **Git & Developer Identity**:
-   * Git installed with author name & email configured:
-     ```bash
-     git config --global user.name "Your Name"
-     git config --global user.email "your.email@example.com"
-     ```
-     *(Mandatory: without this, Git will reject autonomous agent commits with `Author identity unknown`).*
-   * GitHub authentication (SSH key or `gh auth login`) so your agent can push/pull repositories without password prompts.
-3. **Google Account**: At least 1 Google account (Gmail or Workspace). No credit cards or billing setup needed.
-4. **Google Antigravity CLI (`agy`)**:
-   * Install via npm: `npm install -g @google/antigravity-cli`
-   * Or get the official binary from [antigravity.google](https://antigravity.google) and place `agy` in `~/.local/bin/agy`.
-5. **Node.js**: Recommended for the live quota inspector (`q`). (Run `sudo apt install -y nodejs`).
-
----
-
-### 🎯 Fast-Path A: Pre-fill `.env` First (Zero-Prompt Setup)
-
-Instead of answering interactive prompts during installation, you can pre-fill all your credentials, Git identity, and swarm preferences in `.env` beforehand:
+### Step 1: Clone & Configure `.env`
+Pre-fill your settings once so you don't have to hunt for tokens mid-install:
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent
 cd ~/workspaces/agy-free-agent
-
-# 2. Copy the template and fill in your details
 cp .env.example .env
 nano .env   # (or use VS Code / Cursor: cursor .env)
 ```
 
-**What you can pre-fill in `.env`:**
-* **`GIT_USER_NAME` & `GIT_USER_EMAIL`**: Author identity for autonomous commits.
-* **`AUTO_GENERATE_SSH="true"`**: Auto-generate an Ed25519 SSH key if none exists.
-* **`GITHUB_TOKEN`**: Auto-authorize GitHub CLI (`gh auth login`) for private repos.
-* **`ENABLE_SUDO_ALL="true"`**: Auto-enable passwordless sudo for uninterrupted background package installations.
-* **`TELEGRAM_BOT_TOKEN` & `TELEGRAM_CHAT_ID`**: Real-time task alerts and mobile briefings.
-* **`AGY_PROFILES_COUNT="2"`**: Automatically provision 2 or more Google accounts (`agy1`, `agy2`..) for unlimited quota relay.
+**Key variables in `.env`:**
+* **`GIT_USER_NAME` & `GIT_USER_EMAIL`**: Author info for autonomous git commits.
+* **`ENABLE_SUDO_ALL="true"`**: Auto-grants passwordless sudo (agents never hang on package installs).
+* **`AGY_PROFILES_COUNT="2"`**: Auto-provisions Profile 1 (`agy1`) and Profile 2 (`agy2`) for unlimited quota relay.
+* **`TELEGRAM_BOT_TOKEN` & `TELEGRAM_CHAT_ID`**: *(Optional)* Real-time phone alerts & task briefings.
+* **`GITHUB_TOKEN`**: *(Optional)* Auto-authenticates GitHub CLI for cloning and pushing private repositories.
 
+---
+
+### Step 2: Run the Installer
 ```bash
-# 3. Run the installer (it consumes .env and completes silently in seconds!)
 ./scripts/install.sh
 ```
 
----
+**What happens automatically:**
+* ✦ Reads `.env` and executes silently without interactive questions.
+* ✦ Auto-installs missing dependencies (`bubblewrap`, `git`, `nodejs`, `jq`).
+* ✦ Configures passwordless sudo (`/etc/sudoers.d/agy-agent`) and Ed25519 SSH keys.
+* ✦ Deploys zero-prompt YOLO permissions (`settings.json`) and autonomous engineer persona (`GEMINI.md`).
+* ✦ Links CLI tools (`agy1`, `agy2`, `q`, `cleanroom-guard`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/`.
 
-### ⚡ Fast-Path B: Instant 1-Line Setup (Interactive Wizard)
-If you haven't created a `.env` file, paste this single command. The interactive wizard will guide you through dependency installation, Git validation, passwordless sudo, and profile creation:
-
-```bash
-(command -v git >/dev/null || (sudo apt-get update && sudo apt-get install -y git)) && git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent && bash ~/workspaces/agy-free-agent/scripts/install.sh
-```
-
-*(If this repository is public or you have raw access, you can also run directly:* `curl -fsSL https://raw.githubusercontent.com/HoangYell/agy-free-agent/main/scripts/install.sh | bash`*)*
-
----
-
-### Step-by-Step Breakdown
-
-#### Step 1: Run the Interactive Installer
-The installer (`scripts/install.sh`) is an all-in-one setup wizard with sleek terminal visuals:
-```bash
-git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent
-cd ~/workspaces/agy-free-agent
-./scripts/install.sh
-```
-
-**What the installer does automatically:**
-* ✦ **Dependencies**: Installs `git`, `bubblewrap` (`bwrap`), `nodejs`, and `jq` if missing.
-* ✦ **Pre-Flight `.env` Consumer**: Automatically detects and loads `.env` variables if present, skipping interactive questions.
-* ✦ **Git Identity Validation**: Checks `git config user.name` and `user.email`. If unset, prompts you interactively with live validation until valid.
-* ✦ **SSH Key Generator**: Offers to generate a high-security Ed25519 SSH key if no GitHub authentication is detected.
-* ✦ **Passwordless Sudo**: Configures `/etc/sudoers.d/agy-agent` so autonomous agents can install packages and manage services in the background without hanging on password prompts.
-* ✦ **Workspace & Tooling**: Links CLI tools (`agy1`, `agy-setup`, `q`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/` and sets up `~/workspaces/`.
-* ✦ **Auto-Approval YOLO Mode**: Deploys pre-approved permissions to prevent annoying tool confirmation popups.
-* ✦ **Multi-Profile Swarm**: Provisions Profile 2 (`agy2`) or more accounts directly from `AGY_PROFILES_COUNT` in `.env` or via interactive prompt.
+> [!TIP]
+> **No `.env` file?** You can also run `./scripts/install.sh` directly without creating `.env`. The installer will launch an interactive terminal wizard with live validation loops instead.
 
 ---
 
-### Step 2: Start Your Primary Agent (`agy1`)
-Launch your primary profile:
+### Step 3: Start Pair-Programming!
+Launch your primary agent:
 ```bash
 agy1
 ```
-* **First-time login**: A URL will appear in your terminal (or open in your browser). Sign in with your primary Google account.
-* **That's it!** You are now pair-programming with a full-control autonomous agent in your terminal.
+* **First launch**: Click the Google sign-in URL in your terminal to authenticate your primary account.
+* **Inspect live quotas**: Type `q` anytime to see remaining requests, CPU/RAM, and background processes.
+* **Switch on rate limit**: Hit the 5-hour quota limit on Account 1? Switch to `agy2` in your next tab—it immediately picks up where `agy1` left off.
 
 ---
 
-### Step 3: Enable Unlimited Quota (Add More Accounts)
-Never hit the 5-hour rate limit again. You can add a 2nd or 3rd Google account in 30 seconds:
-
-```bash
-# 1. Generate the isolated profile for Account 2
-agy-setup 2
-
-# 2. Launch it and sign in with your 2nd Google account
-agy2
-```
-* Now you can open multiple terminal tabs or tmux panes and run `agy1` and `agy2` side-by-side!
-* To see all your active accounts, quotas, and background processes at any time, just type:
-```bash
-q
-```
-
----
-
-### Step 4: (Recommended) Enable Full Sudo Autonomy
-Want your agent to install dependencies (`apt install`), restart system services, or manage Docker containers without hanging on password prompts?
-
-Run this once:
-```bash
-./scripts/setup-sudo.sh
-```
-*This safely configures `/etc/sudoers.d/agy-agent` with NOPASSWD for your current user, validated via `visudo`.*
-
----
-
-### 📂 Where Do My Code Projects Go?
-Always put your repositories inside **`~/workspaces/<project-name>`**:
+### 📂 Workspace Standard: `~/workspaces/<project>`
+Always put your coding repositories inside **`~/workspaces/<project-name>`**:
 ```bash
 cd ~/workspaces
 git clone https://github.com/your-username/my-cool-app.git
 cd my-cool-app
 agy1
 ```
-*All folders inside `~/workspaces` are automatically pre-trusted by AgyFreeAgent, meaning the agent can read, write, build, and test your code without stopping to ask for permission.*
+*All project folders inside `~/workspaces/` are pre-trusted with auto-approval permissions, allowing the agent to read, write, build, test, and commit autonomously.*
 
 ---
 
