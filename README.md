@@ -6,8 +6,7 @@
 </p>
 
 <p align="center">
-  <em>🦐 "Nuôi tôm bằng Antigravity được không? Câu trả lời là ĐƯỢC. OpenCode hay Cursor cũng được luôn!"</em><br>
-  <sub>("Can you automate shrimp farming with Antigravity? Absolutely YES. OpenCode or Cursor work just as seamlessly!")</sub>
+  <em>🦐 "Can you automate a 24/7 shrimp farm with Antigravity? Absolutely YES. OpenCode or Cursor work just as seamlessly!"</em>
 </p>
 
 <p align="center">
@@ -33,12 +32,12 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 **AgyFreeAgent** bridges this gap. Built on top of **Google Antigravity CLI (`agy`)**, it provisions an isolated, multi-profile swarm powered by Linux user-space filesystem namespaces (**Bubblewrap `bwrap`**). You get a persistent, full-control AI engineer running directly on your Linux host—with **zero API keys and zero monthly subscriptions**.
 
 > [!TIP]
-> **🦐 "Nuôi tôm bằng Antigravity được không?" — Câu trả lời là ĐƯỢC!**
+> **🦐 "Can you run a shrimp farm on Antigravity?" — The answer is YES!**
 > 
-> Dù bạn muốn:
-> * 🌾 **Vận hành hệ thống thực tế & IoT**: Giám sát cảm biến, cào dữ liệu, bắt hình camera phần cứng (`/dev/video0`), tự động hoá 24/7 từ nông trại công nghệ cao đến homelab server.
-> * 💻 **Lập trình cùng Cursor & OpenCode**: Chạy song hành Antigravity swarm (`agy1`..`agy5`) với Cursor IDE và kho mô hình mở OpenCode (`oa1`..`oa6`).
-> * 🛡️ **Tự sửa bug & deploy CI/CD xuyên đêm**: Agent tự inspect diff, chạy build, test và đẩy production mà không bao giờ đòi thẻ tín dụng hay tốn tiền API.
+> Whether you need to:
+> * 🌾 **Automate real-world IoT & physical systems**: Monitor sensors, scrape live data, inspect hardware camera feeds (`/dev/video0`), and run 24/7 autonomous loops—from high-tech aquaculture to homelab clusters.
+> * 💻 **Pair-program alongside Cursor & OpenCode**: Run an Antigravity multi-account swarm (`agy1`..`agy5`) in harmony with Cursor IDE and OpenCode's open-weights model suite (`oa1`..`oa6`).
+> * 🛡️ **Autonomous overnight bug-fixing & CI/CD**: Let agents inspect git diffs, compile builds, execute test suites, and deploy to production while you sleep—with zero credit cards and zero API billing anxiety.
 
 ---
 
