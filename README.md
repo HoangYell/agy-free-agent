@@ -84,38 +84,111 @@ Instead, AgyFreeAgent leaves host `$HOME` completely untouched, mounting only `~
 
 ---
 
-## ⏱️ 60-Second Quickstart
+## 🚀 Setup Guide: From Zero to Autonomous in 3 Minutes
 
-### 1. Clone the repository
+Follow these simple steps to get your autonomous engineering swarm up and running.
+
+### 📋 Prerequisites (What You Need)
+1. **Operating System**: Linux (Ubuntu 20.04+, Debian, Fedora, Arch) or **Windows WSL2** (Ubuntu).
+2. **Google Account**: At least 1 personal or workspace Google account. No credit cards needed.
+3. **Google Antigravity CLI (`agy`)**: If you don't have it yet, install it from [antigravity.google.com](https://antigravity.google.com) or copy the binary to `~/.local/bin/agy`.
+
+---
+
+### Step 1: Clone & Run the 1-Click Installer
+Open your terminal and run:
 ```bash
 git clone https://github.com/HoangYell/agy-free-agent.git
 cd agy-free-agent
-```
-
-### 2. Run the installer
-```bash
 ./scripts/install.sh
 ```
-The installer will:
-* Verify or install `bubblewrap` (`bwrap`).
-* Symlink `agy-setup`, `q`, and `cleanroom-guard` into `~/.local/bin/`.
-* Initialize `agy1` (Primary Profile).
-* Create the canonical workspace folder `~/workspaces`.
-* Install the clean-room pre-commit hook.
 
-### 3. (Recommended) Enable Passwordless Sudo for Full Autonomy
-Allow your agent to install packages and manage services without hanging on password prompts:
+**What the installer does automatically:**
+* ✅ Checks or installs `bubblewrap` (`bwrap`) for zero-collision profile isolation.
+* ✅ Links CLI tools (`agy1`, `agy-setup`, `q`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/`.
+* ✅ Creates your organized workspace folder at `~/workspaces/`.
+* ✅ Deploys pre-configured auto-approval permissions (no annoying confirmation prompts).
+
+---
+
+### Step 2: Start Your Primary Agent (`agy1`)
+Launch your primary profile:
+```bash
+agy1
+```
+* **First-time login**: A URL will appear in your terminal (or open in your browser). Sign in with your primary Google account.
+* **That's it!** You are now pair-programming with a full-control autonomous agent in your terminal.
+
+---
+
+### Step 3: Enable Unlimited Quota (Add More Accounts)
+Never hit the 5-hour rate limit again. You can add a 2nd or 3rd Google account in 30 seconds:
+
+```bash
+# 1. Generate the isolated profile for Account 2
+agy-setup 2
+
+# 2. Launch it and sign in with your 2nd Google account
+agy2
+```
+* Now you can open multiple terminal tabs or tmux panes and run `agy1` and `agy2` side-by-side!
+* To see all your active accounts, quotas, and background processes at any time, just type:
+```bash
+q
+```
+
+---
+
+### Step 4: (Recommended) Enable Full Sudo Autonomy
+Want your agent to install dependencies (`apt install`), restart system services, or manage Docker containers without hanging on password prompts?
+
+Run this once:
 ```bash
 ./scripts/setup-sudo.sh
 ```
+*This safely configures `/etc/sudoers.d/agy-agent` with NOPASSWD for your current user, validated via `visudo`.*
 
-### 4. Provision Additional Google Accounts
-To add Account 2, Account 3, etc.:
+---
+
+### 📂 Where Do My Code Projects Go?
+Always put your repositories inside **`~/workspaces/<project-name>`**:
 ```bash
-agy-setup 2
-agy-setup 3
+cd ~/workspaces
+git clone https://github.com/your-username/my-cool-app.git
+cd my-cool-app
+agy1
 ```
-Each command generates an isolated launcher (`agy2`, `agy3`) and pre-configures unrestricted permissions.
+*All folders inside `~/workspaces` are automatically pre-trusted by AgyFreeAgent, meaning the agent can read, write, build, and test your code without stopping to ask for permission.*
+
+---
+
+### ❓ Common Setup Questions & Troubleshooting
+
+<details>
+<summary><b>Q: 'bwrap' command not found?</b></summary>
+
+Install bubblewrap via your Linux package manager:
+* **Ubuntu/Debian**: `sudo apt update && sudo apt install -y bubblewrap`
+* **Fedora/RHEL**: `sudo dnf install -y bubblewrap`
+* **Arch Linux**: `sudo pacman -S bubblewrap`
+</details>
+
+<details>
+<summary><b>Q: Command 'agy1' not found after install?</b></summary>
+
+Make sure `~/.local/bin` is in your `PATH`. Run:
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+</details>
+
+<details>
+<summary><b>Q: Can I run this on macOS or Windows?</b></summary>
+
+* **Windows**: Works 100% natively inside **WSL2** (Windows Subsystem for Linux with Ubuntu). Run `wsl --install` in PowerShell, then follow the Linux setup above.
+* **macOS**: Multi-profile filesystem isolation (`bwrap`) relies on the Linux kernel namespace. On Mac, run AgyFreeAgent inside a lightweight Linux container, VM, or [OrbStack](https://orbstack.dev).
+</details>
 
 ---
 

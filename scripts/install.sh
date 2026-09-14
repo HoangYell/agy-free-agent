@@ -45,7 +45,16 @@ else
   echo "[!] Warning: bwrap could not be verified. Multi-profile may fail without bwrap."
 fi
 
-# 3. Create target directories
+# 3. Check agy binary
+echo "[*] Checking Google Antigravity CLI (agy)..."
+if command -v agy &>/dev/null || [[ -x "${BIN_DIR}/agy" ]]; then
+  echo "[✓] 'agy' CLI binary detected."
+else
+  echo "[!] Notice: 'agy' command not found in PATH or ${BIN_DIR}."
+  echo "    Get Antigravity CLI from https://antigravity.google.com or copy 'agy' to ~/.local/bin/agy."
+fi
+
+# 4. Create target directories
 mkdir -p "${BIN_DIR}"
 mkdir -p "${PROFILES_BASE}"
 mkdir -p "${WORKSPACES_DIR}"
