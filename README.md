@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <em>🦐 "Can you automate a 24/7 shrimp farm with Antigravity? Absolutely YES. OpenCode or Cursor work just as seamlessly!"</em>
+  <em>🦞 "Can you automate 24/7 lobster farming with Antigravity? Absolutely YES. OpenCode or Cursor work just as seamlessly!"</em>
 </p>
 
 <p align="center">
@@ -32,12 +32,12 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 **AgyFreeAgent** bridges this gap. Built on top of **Google Antigravity CLI (`agy`)**, it provisions an isolated, multi-profile swarm powered by Linux user-space filesystem namespaces (**Bubblewrap `bwrap`**). You get a persistent, full-control AI engineer running directly on your Linux host—with **zero API keys and zero monthly subscriptions**.
 
 > [!TIP]
-> **🦐 "Can you run a shrimp farm on Antigravity?" — The answer is YES!**
+> **🦞 "Can you run a digital lobster farm on Antigravity?" — The answer is YES!**
 > 
 > Whether you need to:
-> * 🌾 **Automate real-world IoT & physical systems**: Monitor sensors, scrape live data, inspect hardware camera feeds (`/dev/video0`), and run 24/7 autonomous loops—from high-tech aquaculture to homelab clusters.
+> * 🦞 **Breed autonomous digital lobsters 24/7**: Run background self-healing loops, monitor live server telemetry, inspect hardware camera feeds (`/dev/video0`), or even manage physical aquaculture IoT—all without burning through paid API credits.
 > * 💻 **Pair-program alongside Cursor & OpenCode**: Run an Antigravity multi-account swarm (`agy1`..`agy5`) in harmony with Cursor IDE and OpenCode's open-weights model suite (`oa1`..`oa6`).
-> * 🛡️ **Autonomous overnight bug-fixing & CI/CD**: Let agents inspect git diffs, compile builds, execute test suites, and deploy to production while you sleep—with zero credit cards and zero API billing anxiety.
+> * 🛡️ **Autonomous overnight bug-fixing & CI/CD**: Let your lobsters inspect git diffs, compile builds, execute test suites, and deploy to production while you sleep—with zero credit cards and zero API billing anxiety.
 
 ---
 
