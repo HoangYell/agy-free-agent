@@ -1,0 +1,9 @@
+[Unit]
+Description=AgyFreeAgent Host Watchdog & Zombie Remediation Service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'pkill -f "chrome.*--type=renderer.*defunct" 2>/dev/null || true'
+StandardOutput=journal
+StandardError=journal

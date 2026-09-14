@@ -1,0 +1,39 @@
+# Sensitive credentials & environment files
+.env
+.env.*
+!.env.example
+credentials.json
+service-account*.json
+*.pem
+*.key
+*.pfx
+*.p12
+id_rsa*
+id_ed25519*
+*token*
+metadata.json
+
+# Local profiles & state databases
+.gemini-profiles/
+antigravity-cli/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Build & Dependency artifacts
+node_modules/
+dist/
+build/
+.cache/
+*.log
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~

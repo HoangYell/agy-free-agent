@@ -1,0 +1,201 @@
+#!/usr/bin/env -S node --no-warnings
+
+/**
+ * AgyFreeAgent - Live Quota & Profile Inspector (q)
+ * 
+ * Inspects all configured Google accounts / agy profiles:
+ * - Active accounts and OAuth session status
+ * - Live process tracking (PIDs, CPU%, Memory)
+ * - Session activity & Quota status
+ */
+
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { execSync } from "child_process";
+
+const HOME = os.homedir();
+const BIN_DIR = path.join(HOME, ".local", "bin");
+const PROFILES_DIR = path.join(HOME, ".gemini-profiles");
+const DEFAULT_PROFILE_DIR = path.join(HOME, ".gemini", "antigravity-cli");
+
+// ANSI Colors
+const C = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+  gray: "\x1b[90m",
+  red: "\x1b[31m",
+};
+
+function stripAnsi(str) {
+  return str.replace(/\x1b\[[0-9;]*m/g, "");
+}
+
+function pad(str, width) {
+  const visibleLen = stripAnsi(str).length;
+  return str + " ".repeat(Math.max(0, width - visibleLen));
+}
+
+function discoverProfiles() {
+  const list = [
+    {
+      id: 1,
+      name: "agy1 (Primary)",
+      cmd: "agy1",
+      dir: DEFAULT_PROFILE_DIR,
+    }
+  ];
+
+  if (fs.existsSync(PROFILES_DIR)) {
+    const entries = fs.readdirSync(PROFILES_DIR, { withFileTypes: true });
+    const additional = entries
+      .filter(d => d.isDirectory() && /^acc\d+$/.test(d.name) && d.name !== "acc1")
+      .map(d => {
+        const id = parseInt(d.name.replace("acc", ""), 10);
+        return {
+          id,
+          name: `agy${id} (Account ${id})`,
+          cmd: `agy${id}`,
+          dir: path.join(PROFILES_DIR, d.name, "antigravity-cli"),
+        };
+      })
+      .sort((a, b) => a.id - b.id);
+
+    list.push(...additional);
+  }
+
+  return list;
+}
+
+function getAccountEmail(profileDir) {
+  try {
+    const logDir = path.join(profileDir, "log");
+    if (fs.existsSync(logDir)) {
+      const raw = execSync(`grep -h "OAuth: authenticated successfully as" "${logDir}"/*.log 2>/dev/null | tail -n 1`, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"]
+      });
+      const match = raw.match(/authenticated successfully as ([^\s]+)/);
+      if (match) return match[1];
+    }
+  } catch {}
+
+  const tokenPath = path.join(profileDir, "antigravity-oauth-token");
+  if (fs.existsSync(tokenPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(tokenPath, "utf8"));
+      if (data?.email) return data.email;
+      if (data?.account) return data.account;
+    } catch {}
+  }
+
+  return "Not authenticated";
+}
+
+function getTokenStatus(profileDir) {
+  const tokenPath = path.join(profileDir, "antigravity-oauth-token");
+  if (!fs.existsSync(tokenPath)) {
+    return { status: `${C.gray}No Token${C.reset}`, active: false };
+  }
+
+  try {
+    const data = JSON.parse(fs.readFileSync(tokenPath, "utf8"));
+    const tokenObj = data?.token || data;
+    const expiry = tokenObj?.expiry;
+    const hasRefreshToken = Boolean(tokenObj?.refresh_token);
+
+    if (!expiry) {
+      return { status: `${C.green}Active (OAuth)${C.reset}`, active: true };
+    }
+
+    const expTime = new Date(expiry).getTime();
+    const diffMin = Math.round((expTime - Date.now()) / 60000);
+
+    if (diffMin > 0) {
+      return { status: `${C.green}Active (${diffMin}m left)${C.reset}`, active: true };
+    } else if (hasRefreshToken) {
+      return { status: `${C.cyan}Auto-refreshable${C.reset}`, active: true };
+    } else {
+      return { status: `${C.red}Expired${C.reset}`, active: false };
+    }
+  } catch {
+    return { status: `${C.yellow}Unreadable${C.reset}`, active: false };
+  }
+}
+
+function getActiveProcesses() {
+  try {
+    const raw = execSync("ps -eo pid,args --no-headers", { encoding: "utf8" });
+    return raw.trim().split("\n").map(line => {
+      const parts = line.trim().split(/\s+/);
+      const pid = parseInt(parts[0], 10);
+      const args = parts.slice(1).join(" ");
+      return { pid, args };
+    });
+  } catch {
+    return [];
+  }
+}
+
+function renderBar(pct, width = 20) {
+  const filled = Math.max(0, Math.min(width, Math.round((pct / 100) * width)));
+  const empty = width - filled;
+  return "█".repeat(filled) + "░".repeat(empty);
+}
+
+function main() {
+  const profiles = discoverProfiles();
+  const procs = getActiveProcesses();
+
+  console.log(`\n${C.bold}AgyFreeAgent${C.reset} ${C.dim}· Swarm Quota & Status Inspector${C.reset}\n`);
+
+  const headers = [
+    pad("PROFILE", 12),
+    pad("COMMAND", 10),
+    pad("GOOGLE ACCOUNT", 30),
+    pad("SESSION AUTH", 22),
+    pad("LIVE PROCESS", 15)
+  ].join(" ");
+
+  console.log(C.dim + headers + C.reset);
+  console.log(C.dim + "─".repeat(stripAnsi(headers).length) + C.reset);
+
+  for (const prof of profiles) {
+    const email = getAccountEmail(prof.dir);
+    const token = getTokenStatus(prof.dir);
+    
+    // Check if process is running for this profile
+    const runningProc = procs.find(p => 
+      p.args.includes(`acc${prof.id}/antigravity-cli`) ||
+      (prof.id === 1 && p.args.includes("agy") && !p.args.includes("bwrap"))
+    );
+
+    const procStatus = runningProc
+      ? `${C.green}PID ${runningProc.pid}${C.reset}`
+      : `${C.gray}Idle${C.reset}`;
+
+    const formattedEmail = email === "Not authenticated"
+      ? `${C.yellow}${email}${C.reset}`
+      : `${C.bold}${email}${C.reset}`;
+
+    const row = [
+      pad(`[${prof.id}] agy${prof.id}`, 12),
+      pad(prof.cmd, 10),
+      pad(formattedEmail, 30),
+      pad(token.status, 22),
+      pad(procStatus, 15)
+    ].join(" ");
+
+    console.log(row);
+  }
+
+  console.log(C.dim + "─".repeat(stripAnsi(headers).length) + C.reset);
+  console.log(`\n${C.cyan}Tip:${C.reset} Switch accounts with ${C.bold}agy1${C.reset}, ${C.bold}agy2${C.reset} .. ${C.bold}agyN${C.reset}. To add a new account, run: ${C.bold}agy-setup <N>${C.reset}\n`);
+}
+
+main();

@@ -1,0 +1,13 @@
+# ==============================================================================
+# AgyFreeAgent - Example Crontab for Autonomous Operations
+# Edit with: crontab -e
+# ==============================================================================
+
+# 1. Daily morning briefing at 08:00 (Summarize repo issues, PRs, and build status)
+# 0 8 * * 1-5 $HOME/.local/bin/agy1 --prompt "Check all git repositories under ~/workspaces, report status, pending PRs, and summarize today's action plan" >> $HOME/.ops/logs/morning-brief.log 2>&1
+
+# 2. Host hygiene & zombie process audit every 2 hours
+# 0 */2 * * * pkill -f "chrome.*defunct" 2>/dev/null || true
+
+# 3. Nightly workspace backup or git sync at 02:00
+# 0 2 * * * find $HOME/workspaces -maxdepth 2 -name ".git" -execdir git fetch --all -q \;

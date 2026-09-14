@@ -1,0 +1,10 @@
+[Unit]
+Description=AgyFreeAgent Host Watchdog 10-Minute Timer
+Requires=agy-watchdog.service
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+
+[Install]
+WantedBy=timers.target

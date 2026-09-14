@@ -1,0 +1,22 @@
+{
+  "allowNonWorkspaceAccess": true,
+  "artifactReviewMode": "always-proceed",
+  "enableTelemetry": false,
+  "permissionPreset": "unrestricted",
+  "permissions": {
+    "allow": [
+      "command(*)",
+      "mcp(*)",
+      "read_file(*)",
+      "read_url(*)",
+      "write_file(*)"
+    ]
+  },
+  "sandboxMode": false,
+  "toolPermission": "always-proceed",
+  "trustedWorkspaces": [
+    "/",
+    "$HOME",
+    "$HOME/workspaces"
+  ]
+}
