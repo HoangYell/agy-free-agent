@@ -134,7 +134,7 @@ nano .env   # (or use your editor: code .env / cursor .env)
 
 **What happens automatically:**
 * ✦ Reads `.env` and executes silently without interactive questions.
-* ✦ Auto-installs missing dependencies (`bubblewrap`, `git`, `nodejs`, `jq`).
+* ✦ Auto-installs Google Antigravity CLI (via `https://antigravity.google/cli/install.sh`) and system dependencies (`bubblewrap`, `git`, `nodejs`, `jq`).
 * ✦ Configures passwordless sudo (`/etc/sudoers.d/agy-agent`) and Ed25519 SSH keys.
 * ✦ Deploys zero-prompt YOLO permissions (`settings.json`) and autonomous engineer persona (`GEMINI.md`).
 * ✦ Provisions global MCP servers (`~/.gemini/config/mcp_config.json`) with auto-approved `mcp(*)` permissions.
