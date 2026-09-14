@@ -75,6 +75,21 @@ echo -e "${PURPLE}│${RESET}   ${GREEN}\"No API keys. No credit cards. Just you
 echo -e "${PURPLE}╰───────────────────────────────────────────────────────────────────╯${RESET}"
 echo ""
 
+# Load Pre-Flight Configuration (.env) if present
+ENV_FILE=""
+if [[ -f "${ROOT_DIR}/.env" ]]; then
+  ENV_FILE="${ROOT_DIR}/.env"
+elif [[ -f "./.env" ]]; then
+  ENV_FILE="./.env"
+fi
+
+if [[ -n "${ENV_FILE}" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${ENV_FILE}"
+  set +a
+fi
+
 # ==============================================================================
 # [1/6] System & Environment Check
 # ==============================================================================
@@ -86,6 +101,12 @@ if [[ "${OS_NAME}" != "Linux" ]]; then
   echo -e "    On Windows, please use WSL2 (Ubuntu). On macOS, use a Linux VM."
 else
   echo -e "  ${GREEN}✔ Linux kernel detected${RESET} ($(uname -r))."
+fi
+
+if [[ -n "${ENV_FILE}" ]]; then
+  echo -e "  ${GREEN}✔ Pre-flight configuration loaded from ${ENV_FILE}${RESET}"
+else
+  echo -e "  ${SLATE}ℹ Tip: You can pre-fill keys in .env (copy from .env.example) for zero-prompt setup.${RESET}"
 fi
 
 mkdir -p "${BIN_DIR}"
@@ -157,15 +178,21 @@ if ! command -v jq &>/dev/null; then
 fi
 
 # ==============================================================================
-# [3/6] Developer & Git Identity (Interactive Validation)
+# [3/6] Developer & Git Identity (Pre-flight .env or Interactive Validation)
 # ==============================================================================
 echo -e "\n${BOLD}${PURPLE}┌── [3/6] Developer & Git Identity${RESET}"
 
 GIT_USER="$(git config --global user.name 2>/dev/null || true)"
 GIT_EMAIL="$(git config --global user.email 2>/dev/null || true)"
 
-# Validate / prompt Git Name
-if [[ -z "${GIT_USER}" ]]; then
+# Check if provided via .env
+if [[ -n "${GIT_USER_NAME:-}" ]]; then
+  git config --global user.name "${GIT_USER_NAME}"
+  GIT_USER="${GIT_USER_NAME}"
+  echo -e "  ${GREEN}✔ Git author name (from .env):${RESET} ${BOLD}${GIT_USER}${RESET}"
+elif [[ -n "${GIT_USER}" ]]; then
+  echo -e "  ${GREEN}✔ Git author name:${RESET} ${BOLD}${GIT_USER}${RESET}"
+else
   echo -e "  ${AMBER}● Notice:${RESET} Git author name is unset (required for autonomous commits)."
   if [[ "${INTERACTIVE}" == "true" ]]; then
     while [[ -z "${GIT_USER}" ]]; do
@@ -179,12 +206,16 @@ if [[ -z "${GIT_USER}" ]]; then
     git config --global user.name "${GIT_USER}"
     echo -e "  ${GREEN}✔ Saved git user.name: ${BOLD}${GIT_USER}${RESET}"
   fi
-else
-  echo -e "  ${GREEN}✔ Git author name:${RESET} ${BOLD}${GIT_USER}${RESET}"
 fi
 
-# Validate / prompt Git Email
-if [[ -z "${GIT_EMAIL}" ]]; then
+# Check email via .env
+if [[ -n "${GIT_USER_EMAIL:-}" ]]; then
+  git config --global user.email "${GIT_USER_EMAIL}"
+  GIT_EMAIL="${GIT_USER_EMAIL}"
+  echo -e "  ${GREEN}✔ Git author email (from .env):${RESET} ${BOLD}${GIT_EMAIL}${RESET}"
+elif [[ -n "${GIT_EMAIL}" ]]; then
+  echo -e "  ${GREEN}✔ Git author email:${RESET} ${BOLD}${GIT_EMAIL}${RESET}"
+else
   echo -e "  ${AMBER}● Notice:${RESET} Git author email is unset (required for autonomous commits)."
   if [[ "${INTERACTIVE}" == "true" ]]; then
     while true; do
@@ -200,8 +231,17 @@ if [[ -z "${GIT_EMAIL}" ]]; then
     git config --global user.email "${GIT_EMAIL}"
     echo -e "  ${GREEN}✔ Saved git user.email: ${BOLD}${GIT_EMAIL}${RESET}"
   fi
-else
-  echo -e "  ${GREEN}✔ Git author email:${RESET} ${BOLD}${GIT_EMAIL}${RESET}"
+fi
+
+# GitHub Token Authentication (if provided in .env)
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+  if ! command -v gh &>/dev/null; then
+    install_pkg gh || true
+  fi
+  if command -v gh &>/dev/null; then
+    echo "${GITHUB_TOKEN}" | gh auth login --with-token 2>/dev/null || true
+    echo -e "  ${GREEN}✔ GitHub CLI authorized via GITHUB_TOKEN (.env).${RESET}"
+  fi
 fi
 
 # Check GitHub Authentication (SSH key or gh CLI)
@@ -217,62 +257,67 @@ fi
 if [[ "${HAS_SSH}" == "true" || "${HAS_GH}" == "true" ]]; then
   echo -e "  ${GREEN}✔ GitHub authentication ready${RESET} (SSH key or gh CLI detected)."
 else
-  echo -e "  ${AMBER}● Notice:${RESET} No GitHub SSH key or CLI authentication detected."
-  if [[ "${INTERACTIVE}" == "true" ]]; then
+  # Auto generate SSH key if requested in .env
+  GEN_SSH="${AUTO_GENERATE_SSH:-}"
+  if [[ -z "${GEN_SSH}" && "${INTERACTIVE}" == "true" ]]; then
+    echo -e "  ${AMBER}● Notice:${RESET} No GitHub SSH key or CLI authentication detected."
     echo -ne "  ${CYAN}➜${RESET} Generate an Ed25519 SSH key automatically now? [Y/n]: "
     read_prompt "" GEN_SSH
     GEN_SSH="${GEN_SSH:-y}"
-    if [[ "${GEN_SSH}" =~ ^[Yy]$ ]]; then
-      mkdir -p "${HOME}/.ssh"
-      chmod 700 "${HOME}/.ssh"
-      SSH_KEY_FILE="${HOME}/.ssh/id_ed25519"
-      if [[ ! -f "${SSH_KEY_FILE}" ]]; then
-        ssh-keygen -t ed25519 -C "${GIT_EMAIL:-git@agent}" -f "${SSH_KEY_FILE}" -N "" -q
-      fi
-      PUB_KEY="$(cat "${SSH_KEY_FILE}.pub")"
-      echo -e "  ${GREEN}✔ Generated SSH key at ${SSH_KEY_FILE}${RESET}"
-      echo ""
-      echo -e "  ${PURPLE}╭───────────────────────────────────────────────────────────────────╮${RESET}"
-      echo -e "  ${PURPLE}│${RESET} ${BOLD}Add this key to GitHub:${RESET} ${CYAN}https://github.com/settings/keys${RESET}"
-      echo -e "  ${PURPLE}│${RESET}"
-      echo -e "  ${PURPLE}│${RESET} ${SLATE}${PUB_KEY}${RESET}"
-      echo -e "  ${PURPLE}╰───────────────────────────────────────────────────────────────────╯${RESET}"
-      echo ""
+  fi
+
+  if [[ "${GEN_SSH}" =~ ^[Yy]|true$ ]]; then
+    mkdir -p "${HOME}/.ssh"
+    chmod 700 "${HOME}/.ssh"
+    SSH_KEY_FILE="${HOME}/.ssh/id_ed25519"
+    if [[ ! -f "${SSH_KEY_FILE}" ]]; then
+      ssh-keygen -t ed25519 -C "${GIT_EMAIL:-git@agent}" -f "${SSH_KEY_FILE}" -N "" -q
     fi
+    PUB_KEY="$(cat "${SSH_KEY_FILE}.pub")"
+    echo -e "  ${GREEN}✔ Generated SSH key at ${SSH_KEY_FILE}${RESET}"
+    echo ""
+    echo -e "  ${PURPLE}╭───────────────────────────────────────────────────────────────────╮${RESET}"
+    echo -e "  ${PURPLE}│${RESET} ${BOLD}Add this key to GitHub:${RESET} ${CYAN}https://github.com/settings/keys${RESET}"
+    echo -e "  ${PURPLE}│${RESET}"
+    echo -e "  ${PURPLE}│${RESET} ${SLATE}${PUB_KEY}${RESET}"
+    echo -e "  ${PURPLE}╰───────────────────────────────────────────────────────────────────╯${RESET}"
+    echo ""
   fi
 fi
 
 # ==============================================================================
-# [4/6] Passwordless Sudo (Autonomous YOLO Autonomy)
+# [4/6] Passwordless Sudo (Autonomous YOLO Mode)
 # ==============================================================================
 echo -e "${BOLD}${PURPLE}┌── [4/6] Passwordless Sudo (Autonomous YOLO Mode)${RESET}"
 
 if sudo -n true 2>/dev/null; then
   echo -e "  ${GREEN}✔ Passwordless sudo is already active (NOPASSWD: ALL).${RESET}"
 else
-  echo -e "  ${AMBER}● Notice:${RESET} Autonomous agents need passwordless sudo to install packages"
-  echo -e "    and manage services in the background without hanging."
-  if [[ "${INTERACTIVE}" == "true" ]]; then
+  ENABLE_SUDO="${ENABLE_SUDO_ALL:-}"
+  if [[ -z "${ENABLE_SUDO}" && "${INTERACTIVE}" == "true" ]]; then
+    echo -e "  ${AMBER}● Notice:${RESET} Autonomous agents need passwordless sudo to install packages"
+    echo -e "    and manage services in the background without hanging."
     echo -ne "  ${CYAN}➜${RESET} Enable passwordless sudo for '${CURRENT_USER}' now? [Y/n]: "
     read_prompt "" ENABLE_SUDO
     ENABLE_SUDO="${ENABLE_SUDO:-y}"
-    if [[ "${ENABLE_SUDO}" =~ ^[Yy]$ ]]; then
-      echo -e "  ${CYAN}ℹ Enter your password if prompted (one-time setup):${RESET}"
-      if [[ -f "${ROOT_DIR}/scripts/setup-sudo.sh" ]]; then
-        bash "${ROOT_DIR}/scripts/setup-sudo.sh"
-      else
-        TMP_SUDO="$(mktemp)"
-        echo "${CURRENT_USER} ALL=(ALL) NOPASSWD: ALL" > "${TMP_SUDO}"
-        sudo cp "${TMP_SUDO}" /etc/sudoers.d/agy-agent
-        sudo chmod 0440 /etc/sudoers.d/agy-agent
-        rm -f "${TMP_SUDO}"
-      fi
-      if sudo -n true 2>/dev/null; then
-        echo -e "  ${GREEN}✔ Passwordless sudo successfully configured & verified.${RESET}"
-      fi
+  fi
+
+  if [[ "${ENABLE_SUDO}" =~ ^[Yy]|true$ ]]; then
+    echo -e "  ${CYAN}ℹ Configuring passwordless sudo (/etc/sudoers.d/agy-agent)...${RESET}"
+    if [[ -f "${ROOT_DIR}/scripts/setup-sudo.sh" ]]; then
+      bash "${ROOT_DIR}/scripts/setup-sudo.sh"
     else
-      echo -e "  ${SLATE}Skipped sudo configuration. Run ./scripts/setup-sudo.sh later if needed.${RESET}"
+      TMP_SUDO="$(mktemp)"
+      echo "${CURRENT_USER} ALL=(ALL) NOPASSWD: ALL" > "${TMP_SUDO}"
+      sudo cp "${TMP_SUDO}" /etc/sudoers.d/agy-agent
+      sudo chmod 0440 /etc/sudoers.d/agy-agent
+      rm -f "${TMP_SUDO}"
     fi
+    if sudo -n true 2>/dev/null; then
+      echo -e "  ${GREEN}✔ Passwordless sudo successfully configured & verified.${RESET}"
+    fi
+  else
+    echo -e "  ${SLATE}Skipped sudo configuration. Run ./scripts/setup-sudo.sh later if needed.${RESET}"
   fi
 fi
 
@@ -285,16 +330,19 @@ echo -e "\n${BOLD}${PURPLE}┌── [5/6] Antigravity CLI & Swarm Tooling${RESE
 if command -v agy &>/dev/null || [[ -x "${BIN_DIR}/agy" ]]; then
   echo -e "  ${GREEN}✔ Google Antigravity CLI ('agy') detected.${RESET}"
 else
-  echo -e "  ${AMBER}● Notice:${RESET} 'agy' binary is not yet installed in PATH or ${BIN_DIR}."
-  if command -v npm &>/dev/null && [[ "${INTERACTIVE}" == "true" ]]; then
+  INSTALL_AGY="${AUTO_INSTALL_AGY_NPM:-}"
+  if [[ -z "${INSTALL_AGY}" ]] && command -v npm &>/dev/null && [[ "${INTERACTIVE}" == "true" ]]; then
+    echo -e "  ${AMBER}● Notice:${RESET} 'agy' binary is not yet installed in PATH or ${BIN_DIR}."
     echo -ne "  ${CYAN}➜${RESET} Install '@google/antigravity-cli' globally via npm now? [Y/n]: "
     read_prompt "" INSTALL_AGY
     INSTALL_AGY="${INSTALL_AGY:-y}"
-    if [[ "${INSTALL_AGY}" =~ ^[Yy]$ ]]; then
-      echo -e "  ${CYAN}ℹ Installing @google/antigravity-cli...${RESET}"
-      sudo npm install -g @google/antigravity-cli || npm install -g @google/antigravity-cli || true
-    fi
   fi
+
+  if [[ "${INSTALL_AGY}" =~ ^[Yy]|true$ ]] && command -v npm &>/dev/null; then
+    echo -e "  ${CYAN}ℹ Installing @google/antigravity-cli via npm...${RESET}"
+    sudo npm install -g @google/antigravity-cli || npm install -g @google/antigravity-cli || true
+  fi
+
   if ! command -v agy &>/dev/null && [[ ! -x "${BIN_DIR}/agy" ]]; then
     echo -e "  ${SLATE}Download 'agy' from https://antigravity.google and place in ~/.local/bin/agy.${RESET}"
   fi
@@ -341,8 +389,19 @@ HOOK
   echo -e "  ${GREEN}✔ Clean-room pre-commit shield installed in repository.${RESET}"
 fi
 
-# Optional: Provision Profile 2 (agy2) for multi-account quota
-if [[ "${INTERACTIVE}" == "true" ]]; then
+# Multi-Profile Swarm Provisioning (from .env or interactive prompt)
+TARGET_PROFILES="${AGY_PROFILES_COUNT:-1}"
+if [[ "${TARGET_PROFILES}" -gt 1 ]]; then
+  for ((p = 2; p <= TARGET_PROFILES; p++)); do
+    if [[ ! -f "${BIN_DIR}/agy${p}" ]]; then
+      echo -e "  ${CYAN}ℹ Provisioning Profile ${p} ('agy${p}') from .env...${RESET}"
+      "${ROOT_DIR}/bin/agy-setup" "$p" >/dev/null 2>&1 || true
+      echo -e "  ${GREEN}✔ Profile ${p} ('agy${p}') provisioned successfully.${RESET}"
+    else
+      echo -e "  ${GREEN}✔ Profile ${p} ('agy${p}') is active.${RESET}"
+    fi
+  done
+elif [[ "${INTERACTIVE}" == "true" ]]; then
   if [[ ! -f "${BIN_DIR}/agy2" ]]; then
     echo -ne "  ${CYAN}➜${RESET} Enable 2x Quota? Provision Profile 2 ('agy2') for a 2nd Google account now? [y/N]: "
     read_prompt "" SETUP_P2
@@ -355,6 +414,18 @@ if [[ "${INTERACTIVE}" == "true" ]]; then
   else
     echo -e "  ${GREEN}✔ Profile 2 ('agy2') is already active.${RESET}"
   fi
+fi
+
+# Telegram Integration Check
+if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
+  echo -e "  ${GREEN}✔ Telegram notifications configured${RESET} (Bot Token & Chat ID verified)."
+fi
+
+# Optional Tailscale Mesh Network Setup
+if [[ -n "${TAILSCALE_AUTHKEY:-}" ]] && command -v tailscale &>/dev/null; then
+  echo -e "  ${CYAN}ℹ Connecting to Tailscale mesh using TAILSCALE_AUTHKEY...${RESET}"
+  sudo tailscale up --authkey="${TAILSCALE_AUTHKEY}" --accept-routes 2>/dev/null || true
+  echo -e "  ${GREEN}✔ Tailscale mesh network connected.${RESET}"
 fi
 
 # ==============================================================================
@@ -371,6 +442,9 @@ echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Log Pruner:${RESET}      ${CYAN}ag
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Workspaces Root:${RESET} ${CYAN}~/workspaces/<project-name>${RESET}"
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Git Author:${RESET}      ${SLATE}${GIT_USER:-Unset} <${GIT_EMAIL:-Unset}>${RESET}"
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Sudo Autonomy:${RESET}   $(sudo -n true 2>/dev/null && echo -e "${GREEN}Enabled (NOPASSWD)${RESET}" || echo -e "${AMBER}Requires Password${RESET}")"
+if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
+  echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Telegram Alerts:${RESET} ${GREEN}Active${RESET} ${SLATE}(mobile briefing ready)${RESET}"
+fi
 echo ""
 echo -e "  ${SLATE}───────────────────────────────────────────────────────────────────${RESET}"
 echo -e "  ${BOLD}To start pair-programming with your agent right now, run:${RESET}"

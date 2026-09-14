@@ -118,8 +118,37 @@ Follow these simple steps to get your autonomous engineering swarm up and runnin
 
 ---
 
-### ⚡ Instant 1-Line Setup (Copy & Paste)
-For the fastest setup, paste this single command into your terminal. It handles cloning, dependency installation, interactive Git validation, passwordless sudo, and profile creation in one shot:
+### 🎯 Fast-Path A: Pre-fill `.env` First (Zero-Prompt Setup)
+
+Instead of answering interactive prompts during installation, you can pre-fill all your credentials, Git identity, and swarm preferences in `.env` beforehand:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent
+cd ~/workspaces/agy-free-agent
+
+# 2. Copy the template and fill in your details
+cp .env.example .env
+nano .env   # (or use VS Code / Cursor: cursor .env)
+```
+
+**What you can pre-fill in `.env`:**
+* **`GIT_USER_NAME` & `GIT_USER_EMAIL`**: Author identity for autonomous commits.
+* **`AUTO_GENERATE_SSH="true"`**: Auto-generate an Ed25519 SSH key if none exists.
+* **`GITHUB_TOKEN`**: Auto-authorize GitHub CLI (`gh auth login`) for private repos.
+* **`ENABLE_SUDO_ALL="true"`**: Auto-enable passwordless sudo for uninterrupted background package installations.
+* **`TELEGRAM_BOT_TOKEN` & `TELEGRAM_CHAT_ID`**: Real-time task alerts and mobile briefings.
+* **`AGY_PROFILES_COUNT="2"`**: Automatically provision 2 or more Google accounts (`agy1`, `agy2`..) for unlimited quota relay.
+
+```bash
+# 3. Run the installer (it consumes .env and completes silently in seconds!)
+./scripts/install.sh
+```
+
+---
+
+### ⚡ Fast-Path B: Instant 1-Line Setup (Interactive Wizard)
+If you haven't created a `.env` file, paste this single command. The interactive wizard will guide you through dependency installation, Git validation, passwordless sudo, and profile creation:
 
 ```bash
 (command -v git >/dev/null || (sudo apt-get update && sudo apt-get install -y git)) && git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent && bash ~/workspaces/agy-free-agent/scripts/install.sh
@@ -141,12 +170,13 @@ cd ~/workspaces/agy-free-agent
 
 **What the installer does automatically:**
 * ✦ **Dependencies**: Installs `git`, `bubblewrap` (`bwrap`), `nodejs`, and `jq` if missing.
+* ✦ **Pre-Flight `.env` Consumer**: Automatically detects and loads `.env` variables if present, skipping interactive questions.
 * ✦ **Git Identity Validation**: Checks `git config user.name` and `user.email`. If unset, prompts you interactively with live validation until valid.
 * ✦ **SSH Key Generator**: Offers to generate a high-security Ed25519 SSH key if no GitHub authentication is detected.
 * ✦ **Passwordless Sudo**: Configures `/etc/sudoers.d/agy-agent` so autonomous agents can install packages and manage services in the background without hanging on password prompts.
 * ✦ **Workspace & Tooling**: Links CLI tools (`agy1`, `agy-setup`, `q`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/` and sets up `~/workspaces/`.
 * ✦ **Auto-Approval YOLO Mode**: Deploys pre-approved permissions to prevent annoying tool confirmation popups.
-* ✦ **Multi-Profile Option**: Prompts to provision Profile 2 (`agy2`) immediately if you have a 2nd Google account ready.
+* ✦ **Multi-Profile Swarm**: Provisions Profile 2 (`agy2`) or more accounts directly from `AGY_PROFILES_COUNT` in `.env` or via interactive prompt.
 
 ---
 
