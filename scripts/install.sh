@@ -510,7 +510,6 @@ fi
 
 echo -e "  ${GREEN}✔ Global MCP configuration ready at ${MCP_CONFIG_FILE}${RESET}"
 echo -e "    ${PURPLE}•${RESET} ${BOLD}chrome-devtools:${RESET} CDP browser automation (port 9222)"
-echo -e "    ${PURPLE}•${RESET} ${BOLD}ctrl-alt-pray:${RESET} Anti-hallucination & loop recovery engine"
 if [[ -n "${GH_MCP_TOKEN}" ]]; then
   echo -e "    ${PURPLE}•${RESET} ${BOLD}github:${RESET} Full GitHub API access via personal access token"
 else
@@ -564,7 +563,7 @@ echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Log Pruner:${RESET}      ${CYAN}ag
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Workspaces Root:${RESET} ${CYAN}~/workspaces/<project-name>${RESET}"
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Git Author:${RESET}      ${SLATE}${GIT_USER:-Unset} <${GIT_EMAIL:-Unset}>${RESET}"
 echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Sudo Autonomy:${RESET}   $(sudo -n true 2>/dev/null && echo -e "${GREEN}Enabled (NOPASSWD)${RESET}" || echo -e "${AMBER}Requires Password${RESET}")"
-echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}MCP Server Suite:${RESET} ${GREEN}Active${RESET} ${SLATE}(chrome-devtools, ctrl-alt-pray$([[ -n "${GH_MCP_TOKEN}" ]] && echo ", github"))${RESET}"
+echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}MCP Server Suite:${RESET} ${GREEN}Active${RESET} ${SLATE}(chrome-devtools$([[ -n "${GH_MCP_TOKEN}" ]] && echo ", github"))${RESET}"
 if [[ -n "${TELEGRAM_BOT_TOKEN:-}" && -n "${TELEGRAM_CHAT_ID:-}" ]]; then
   echo -e "  ${BOLD}${PURPLE}●${RESET} ${BOLD}Telegram Alerts:${RESET} ${GREEN}Active${RESET} ${SLATE}(mobile briefing ready)${RESET}"
 fi

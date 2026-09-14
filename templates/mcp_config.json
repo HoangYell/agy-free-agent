@@ -8,13 +8,6 @@
         "--browserUrl",
         "http://127.0.0.1:9222"
       ]
-    },
-    "ctrl-alt-pray": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "ctrl-alt-pray@latest"
-      ]
     }
   }
 }

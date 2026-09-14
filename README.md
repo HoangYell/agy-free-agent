@@ -53,7 +53,7 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 * **🔒 Isolated Auth Storage**: Google session tokens are compartmentalized per profile inside `~/.gemini-profiles/acc<N>/` via `bwrap`, while host tools (`git`, `ssh`, `docker`) remain natively accessible.
 * **📱 Ubiquitous Remote Access**: Command your agent anywhere via **Tailscale Mesh VPN** and **Termius** on mobile, with async alerts delivered straight to **Telegram**.
 * **👁️ Physical World Vision (`/dev/video0`)**: Hardware webcam integration enabling the agent to visually inspect physical setups, user presence, and circuit boards.
-* **🔌 Bundled MCP Server Suite**: Pre-configured with Chrome DevTools Protocol (`chrome-devtools`), official GitHub API (`github`), and anti-hallucination loop recovery (`ctrl-alt-pray`)—all auto-approved with zero confirmation dialogs.
+* **🔌 Bundled MCP Server Suite**: Pre-configured with Chrome DevTools Protocol (`chrome-devtools`) and official GitHub API (`github`)—all auto-approved with zero confirmation dialogs.
 * **🚀 Dedicated Headless Chrome Daemon**: Systemd CDP daemon on port 9222 with cgroups v2 resource quotas—connect in 0.1s with 80% lower RAM.
 * **🐦 Zero-API Social Automation (X / Twitter)**: Headless CDP session injection to publish tweets and media autonomously without $100/mo API fees.
 * **🛡️ Clean-Room Pre-Flight Shield**: Built-in `cleanroom-guard` verifies that no private keys, passwords, or credentials can ever be committed to Git.
@@ -234,7 +234,7 @@ By default, standard AI tools stop and ask for your permission every single time
 
 The **Model Context Protocol (MCP)** is the open standard that connects AI models directly to external tools, browsers, and development services.
 
-Most setups require tedious JSON editing and manual tool approval. **AgyFreeAgent packages, installs, and auto-approves 3 essential production MCP servers automatically:**
+Most setups require tedious JSON editing and manual tool approval. **AgyFreeAgent packages, installs, and auto-approves essential production MCP servers automatically:**
 
 ```mermaid
 flowchart LR
@@ -245,19 +245,16 @@ flowchart LR
     subgraph Config["Shared Global Configuration (~/.gemini/config/mcp_config.json)"]
         CDP["chrome-devtools<br/>(CDP Port 9222)"]
         GH["github<br/>(Official GitHub API)"]
-        Pray["ctrl-alt-pray<br/>(Loop Breaker Engine)"]
     end
 
     subgraph Runtimes["Host Engines"]
         Browser["Dedicated Headless Chrome<br/>(cgroups v2 800M quota)"]
         GitHubAPI["GitHub Repos, PRs & Issues"]
-        Ledger["Falsifiable Experiment Ledger"]
     end
 
-    Agent --> CDP & GH & Pray
+    Agent --> CDP & GH
     CDP --> Browser
     GH --> GitHubAPI
-    Pray --> Ledger
 ```
 
 ### 1. `chrome-devtools` (Real CDP Browser Vision)
@@ -268,10 +265,6 @@ flowchart LR
 ### 2. `github` (Deep GitHub API Integration)
 * **What it does**: Direct integration with the official `@modelcontextprotocol/server-github`. Allows the agent to inspect remote repositories, list pull requests, analyze commit histories, create issue comments, and review diffs without touching a web browser.
 * **Auto-Configuration**: When you set `GITHUB_TOKEN` in `.env` (or authenticate via `gh auth login`), `install.sh` automatically wires up your token into `mcp_config.json`.
-
-### 3. `ctrl-alt-pray` (Autonomous Loop Breaker)
-* **What it does**: An open-source anti-hallucination and loop-recovery engine. When an agent gets stuck in repetitive debugging loops, repeated test failures, or circular reasoning, it triggers `pray` to formulate falsifiable experiments and systematically break free.
-* **Zero-Token**: Runs via `npx -y ctrl-alt-pray@latest` with zero API dependencies.
 
 ---
 
