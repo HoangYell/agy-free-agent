@@ -98,11 +98,24 @@ Follow these simple steps to get your autonomous engineering swarm up and runnin
 
 ---
 
-### Step 1: Clone & Run the 1-Click Installer
-Open your terminal and run:
+### ⚡ Instant 1-Line Setup (Copy & Paste)
+For the fastest setup, paste this single line into your terminal to clone, install, configure YOLO mode, and enable sudo autonomy all at once:
+
 ```bash
-git clone https://github.com/HoangYell/agy-free-agent.git
-cd agy-free-agent
+git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent && cd ~/workspaces/agy-free-agent && ./scripts/install.sh && ./scripts/setup-sudo.sh
+```
+
+*(Once complete, simply type `agy1` to authenticate and start coding!)*
+
+---
+
+### Step-by-Step Breakdown
+
+#### Step 1: Clone & Run the Installer
+If you prefer running commands step-by-step:
+```bash
+git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent
+cd ~/workspaces/agy-free-agent
 ./scripts/install.sh
 ```
 
