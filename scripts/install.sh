@@ -144,7 +144,13 @@ fi
 # Bootstrap repository clone if run standalone / piped
 if [[ ! -f "${ROOT_DIR}/bin/agy-setup" ]]; then
   echo -e "  ${CYAN}ℹ Cloning AgyFreeAgent into ${ROOT_DIR}...${RESET}"
-  git clone https://github.com/HoangYell/agy-free-agent.git "${ROOT_DIR}"
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    git clone "https://${GITHUB_TOKEN}@github.com/HoangYell/agy-free-agent.git" "${ROOT_DIR}" 2>/dev/null || \
+    git clone https://github.com/HoangYell/agy-free-agent.git "${ROOT_DIR}"
+  else
+    git clone https://github.com/HoangYell/agy-free-agent.git "${ROOT_DIR}" 2>/dev/null || \
+    git clone git@github.com:HoangYell/agy-free-agent.git "${ROOT_DIR}"
+  fi
 fi
 
 # 2. Bubblewrap (bwrap)
@@ -240,7 +246,9 @@ if [[ -n "${GITHUB_TOKEN:-}" ]]; then
   fi
   if command -v gh &>/dev/null; then
     echo "${GITHUB_TOKEN}" | gh auth login --with-token 2>/dev/null || true
+    gh auth setup-git 2>/dev/null || true
     echo -e "  ${GREEN}✔ GitHub CLI authorized via GITHUB_TOKEN (.env).${RESET}"
+    echo -e "  ${GREEN}✔ Git credential helper configured via gh CLI (zero-password HTTPS clone & push).${RESET}"
   fi
 fi
 
@@ -255,7 +263,7 @@ if command -v gh &>/dev/null && gh auth status &>/dev/null; then
 fi
 
 if [[ "${HAS_SSH}" == "true" || "${HAS_GH}" == "true" ]]; then
-  echo -e "  ${GREEN}✔ GitHub authentication ready${RESET} (SSH key or gh CLI detected)."
+  echo -e "  ${GREEN}✔ GitHub authentication ready${RESET} (SSH key or gh CLI credential helper detected)."
 else
   # Auto generate SSH key if requested in .env
   GEN_SSH="${AUTO_GENERATE_SSH:-}"
@@ -275,13 +283,26 @@ else
     fi
     PUB_KEY="$(cat "${SSH_KEY_FILE}.pub")"
     echo -e "  ${GREEN}✔ Generated SSH key at ${SSH_KEY_FILE}${RESET}"
-    echo ""
-    echo -e "  ${PURPLE}╭───────────────────────────────────────────────────────────────────╮${RESET}"
-    echo -e "  ${PURPLE}│${RESET} ${BOLD}Add this key to GitHub:${RESET} ${CYAN}https://github.com/settings/keys${RESET}"
-    echo -e "  ${PURPLE}│${RESET}"
-    echo -e "  ${PURPLE}│${RESET} ${SLATE}${PUB_KEY}${RESET}"
-    echo -e "  ${PURPLE}╰───────────────────────────────────────────────────────────────────╯${RESET}"
-    echo ""
+
+    # Try automatic key registration via gh CLI if authorized with admin:public_key
+    KEY_UPLOADED="false"
+    if command -v gh &>/dev/null && gh auth status &>/dev/null; then
+      KEY_TITLE="AgyFreeAgent-$(hostname 2>/dev/null || echo 'host')-$(date +%Y%m%d)"
+      if gh ssh-key add "${SSH_KEY_FILE}.pub" --title "${KEY_TITLE}" 2>/dev/null; then
+        KEY_UPLOADED="true"
+        echo -e "  ${GREEN}✔ SSH public key automatically registered to your GitHub account!${RESET}"
+      fi
+    fi
+
+    if [[ "${KEY_UPLOADED}" != "true" ]]; then
+      echo ""
+      echo -e "  ${PURPLE}╭───────────────────────────────────────────────────────────────────╮${RESET}"
+      echo -e "  ${PURPLE}│${RESET} ${BOLD}Add this key to GitHub:${RESET} ${CYAN}https://github.com/settings/keys${RESET}"
+      echo -e "  ${PURPLE}│${RESET}"
+      echo -e "  ${PURPLE}│${RESET} ${SLATE}${PUB_KEY}${RESET}"
+      echo -e "  ${PURPLE}╰───────────────────────────────────────────────────────────────────╯${RESET}"
+      echo ""
+    fi
   fi
 fi
 

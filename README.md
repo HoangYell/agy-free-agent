@@ -105,11 +105,17 @@ AgyFreeAgent features a zero-prompt installer that reads your pre-filled `.env` 
 Pre-fill your settings once so you don't have to hunt for tokens mid-install:
 
 ```bash
+# Clone the repository (Zero login required for public HTTPS):
 git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent
+# (Or via SSH if you already have SSH keys: git clone git@github.com:HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent)
+
 cd ~/workspaces/agy-free-agent
 cp .env.example .env
-nano .env   # (or use VS Code / Cursor: cursor .env)
+nano .env   # (or use your editor: code .env / cursor .env)
 ```
+
+> [!NOTE]
+> **No GitHub password required to clone!** Public repositories can be cloned anonymously on any fresh machine. To enable your agent to create repositories and push commits later without password prompts, provide `GITHUB_TOKEN` in `.env` (which auto-configures `gh auth setup-git`) or let the installer generate an SSH key for you.
 
 **Key variables in `.env`:**
 * **`GIT_USER_NAME` & `GIT_USER_EMAIL`**: Author info for autonomous git commits.
