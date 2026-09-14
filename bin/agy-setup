@@ -35,7 +35,19 @@ if [[ "${PROFILE_INDEX}" == "1" ]]; then
     echo "[!] Warning: 'agy' command not found in PATH. Ensure Antigravity CLI is installed in ~/.local/bin."
   fi
   ln -sf "$(command -v agy || echo "${BIN_DIR}/agy")" "${BIN_DIR}/agy1"
-  echo "[✓] agy1 successfully linked to default agy."
+
+  # Seed YOLO settings.json into primary profile (~/.gemini/antigravity-cli/settings.json)
+  PRIMARY_DIR="${HOME}/.gemini/antigravity-cli"
+  mkdir -p "${PRIMARY_DIR}"
+  PRIMARY_SETTINGS="${PRIMARY_DIR}/settings.json"
+  if [[ ! -f "${PRIMARY_SETTINGS}" ]]; then
+    echo "[+] Seeding autonomous YOLO permissions into ${PRIMARY_SETTINGS}..."
+    if [[ -f "${TEMPLATES_DIR}/settings.json" ]]; then
+      sed "s|\$HOME|${HOME}|g" "${TEMPLATES_DIR}/settings.json" > "${PRIMARY_SETTINGS}"
+    fi
+  fi
+
+  echo "[✓] agy1 successfully linked to default agy with auto-approval YOLO mode."
   echo "Run 'agy1' to start your primary session."
   exit 0
 fi

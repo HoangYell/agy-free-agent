@@ -192,6 +192,43 @@ source ~/.bashrc
 
 ---
 
+## 🤠 Zero-Prompt "YOLO Mode" (Auto-Approval by Default)
+
+By default, standard AI tools stop and ask for your permission every single time they want to edit a file, run a shell command, or read a directory outside the immediate folder. If you walk away to grab coffee or go to sleep, your agent sits idle waiting for you to press `Y`.
+
+**AgyFreeAgent ships with pre-configured YOLO Mode** across all profiles (`settings.json`):
+
+```json
+{
+  "permissionPreset": "unrestricted",
+  "toolPermission": "always-proceed",
+  "artifactReviewMode": "always-proceed",
+  "allowNonWorkspaceAccess": true,
+  "sandboxMode": false,
+  "permissions": {
+    "allow": [
+      "command(*)",
+      "mcp(*)",
+      "read_file(*)",
+      "read_url(*)",
+      "write_file(*)"
+    ]
+  },
+  "trustedWorkspaces": [
+    "/",
+    "$HOME",
+    "$HOME/workspaces"
+  ]
+}
+```
+
+### What this unlocks:
+* ⚡ **Zero Confirmation Prompts**: Commands (`npm install`, `cargo build`, `git commit`) run immediately.
+* 📁 **Cross-Directory Inspection**: The agent can inspect system configs, read `/var/log/`, or check brother repositories in `~/workspaces/` without permission barriers.
+* 🌙 **True Overnight Autonomy**: Combined with passwordless sudo (`./scripts/setup-sudo.sh`), your agent will never freeze waiting for human approval.
+
+---
+
 ## 🔄 Cross-Profile Relay: Passing the Baton (`agy1` ➔ `agy2` ➔ `agyN`)
 
 The single biggest frustration with modern AI agents is the **rate limit ceiling**: right in the middle of a complex refactor or debugging loop, your quota runs out, killing your momentum.
