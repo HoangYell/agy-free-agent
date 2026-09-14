@@ -318,6 +318,49 @@ Receive instant push notifications when long-running agent tasks complete, build
 
 ---
 
+## 🧩 Meta-Tooling: Agent Bootstrapping Sister Agents (OpenCode `oa1`..`oa6`)
+
+Because **AgyFreeAgent** has passwordless system administration (`sudo all`) and native bash execution, you don't need to manually configure alternative AI tools. You can literally prompt `agy1` to **bootstrap, configure, and provision other open-source agent stacks for you**.
+
+A real-world example: augmenting your host with **OpenCode** and 6 free open models (`oa1`..`oa6`):
+
+```mermaid
+flowchart TD
+    User["Developer Prompt to agy1:<br/>'Install OpenCode and configure 6 free model wrappers oa1..oa6'"]
+    
+    subgraph AutonomousExecution["Autonomous System Provisioning by agy1"]
+        Install["Download & Link opencode binary<br/>~/.opencode/bin/opencode"]
+        Configs["Generate Model Configs<br/>~/.config/opencode/oa1.json .. oa6.json"]
+        Wrappers["Create CLI Launchers in ~/.local/bin/<br/>oa1, oa2, oa3, oa4, oa5, oa6, oan"]
+    end
+
+    User --> AutonomousExecution
+    AutonomousExecution --> DualStack["Dual-Engine Arsenal: agy (Gemini) + oa (Nemotron/MiMo/Ling)"]
+```
+
+### The Exact Prompt Given to `agy1`:
+```text
+"Install OpenCode on this machine. Create 6 distinct profile configs in ~/.config/opencode/ for free models (Big-Pickle, MiMo-v2.5, Nemotron 3.5, Nemotron 3 Ultra, Ling 3.0, and Muse Spark). Then generate executable wrappers oa1 through oa6 in ~/.local/bin/ and a zen dispatcher 'oan' so I can switch models instantly."
+```
+
+### What `agy1` Does in Seconds:
+1. **Deploys OpenCode binary** to `~/.opencode/bin/opencode` and symlinks to `~/.local/bin/opencode`.
+2. **Generates isolated configs** (`~/.config/opencode/oa<N>.json`) specifying model IDs, temperature, and system prompts.
+3. **Creates the multi-model launchers** (`~/.local/bin/oa1` .. `oa6`):
+   ```bash
+   #!/usr/bin/env bash
+   export OPENCODE_CONFIG="${OPENCODE_CONFIG:-$HOME/.config/opencode/oa1.json}"
+   exec opencode "$@"
+   ```
+4. **Builds the dispatcher (`oan`)**: Run `oan` for an interactive menu to choose between Nemotron, MiMo, or Big-Pickle, or type `oa3` directly to fire up NVIDIA Nemotron.
+
+### Result: The Ultimate Zero-Cost Multi-Agent Station
+* **`agy1` .. `agy<N>`**: Primary Google Antigravity swarms (Flagship Gemini reasoning with deep Linux/CDP tool control).
+* **`oa1` .. `oa6`**: Secondary OpenCode multi-model arsenal (Nemotron/MiMo/Big-Pickle for rapid code completion and model diversity).
+* Both live side-by-side on your Linux host, both share `~/workspaces/`, and both cost **$0 in API bills**.
+
+---
+
 ## 📊 Comparison Matrix
 
 | Feature | AgyFreeAgent | Claude Code | OpenAI Codex | OpenClaw | Hermes Agent |
