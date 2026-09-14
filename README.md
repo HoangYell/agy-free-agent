@@ -107,20 +107,20 @@ Follow these simple steps to get your autonomous engineering swarm up and runnin
 ---
 
 ### ⚡ Instant 1-Line Setup (Copy & Paste)
-For the fastest setup, paste this single line into your terminal to clone, install, configure YOLO mode, and enable sudo autonomy all at once:
+For the fastest setup, paste this single command into your terminal. It handles cloning, dependency installation, interactive Git validation, passwordless sudo, and profile creation in one shot:
 
 ```bash
-git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent && cd ~/workspaces/agy-free-agent && ./scripts/install.sh && ./scripts/setup-sudo.sh
+(command -v git >/dev/null || (sudo apt-get update && sudo apt-get install -y git)) && git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent && bash ~/workspaces/agy-free-agent/scripts/install.sh
 ```
 
-*(Once complete, simply type `agy1` to authenticate and start coding!)*
+*(If this repository is public or you have raw access, you can also run directly:* `curl -fsSL https://raw.githubusercontent.com/HoangYell/agy-free-agent/main/scripts/install.sh | bash`*)*
 
 ---
 
 ### Step-by-Step Breakdown
 
-#### Step 1: Clone & Run the Installer
-If you prefer running commands step-by-step:
+#### Step 1: Run the Interactive Installer
+The installer (`scripts/install.sh`) is an all-in-one setup wizard with sleek terminal visuals:
 ```bash
 git clone https://github.com/HoangYell/agy-free-agent.git ~/workspaces/agy-free-agent
 cd ~/workspaces/agy-free-agent
@@ -128,18 +128,13 @@ cd ~/workspaces/agy-free-agent
 ```
 
 **What the installer does automatically:**
-* ✅ Checks or installs `bubblewrap` (`bwrap`) for zero-collision profile isolation.
-* ✅ Verifies Git & author identity (`user.name`, `user.email`) so agents can commit autonomously.
-* ✅ Links CLI tools (`agy1`, `agy-setup`, `q`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/`.
-* ✅ Creates your organized workspace folder at `~/workspaces/`.
-* ✅ Deploys pre-configured auto-approval permissions (no annoying confirmation prompts).
-
-> [!TIP]
-> **Git Identity**: If you haven't configured Git on your machine yet, set it before starting so your agent can commit code without errors:
-> ```bash
-> git config --global user.name "Your Name"
-> git config --global user.email "your.email@example.com"
-> ```
+* ✦ **Dependencies**: Installs `git`, `bubblewrap` (`bwrap`), `nodejs`, and `jq` if missing.
+* ✦ **Git Identity Validation**: Checks `git config user.name` and `user.email`. If unset, prompts you interactively with live validation until valid.
+* ✦ **SSH Key Generator**: Offers to generate a high-security Ed25519 SSH key if no GitHub authentication is detected.
+* ✦ **Passwordless Sudo**: Configures `/etc/sudoers.d/agy-agent` so autonomous agents can install packages and manage services in the background without hanging on password prompts.
+* ✦ **Workspace & Tooling**: Links CLI tools (`agy1`, `agy-setup`, `q`, `agy-clean-logs`, `telegram-notify`) into `~/.local/bin/` and sets up `~/workspaces/`.
+* ✦ **Auto-Approval YOLO Mode**: Deploys pre-approved permissions to prevent annoying tool confirmation popups.
+* ✦ **Multi-Profile Option**: Prompts to provision Profile 2 (`agy2`) immediately if you have a 2nd Google account ready.
 
 ---
 
