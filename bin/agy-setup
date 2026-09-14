@@ -76,10 +76,12 @@ cat << EOF > "${WRAPPER_FILE}"
 PROFILE_DIR="\$HOME/.gemini-profiles/acc${PROFILE_INDEX}/antigravity-cli"
 mkdir -p "\$PROFILE_DIR"
 
+AGY_BIN="\$(command -v agy || echo "\$HOME/.local/bin/agy")"
+
 exec bwrap \\
   --dev-bind / / \\
   --bind "\$PROFILE_DIR" "\$HOME/.gemini/antigravity-cli" \\
-  agy "\$@"
+  "\$AGY_BIN" "\$@"
 EOF
 
 chmod +x "${WRAPPER_FILE}"
