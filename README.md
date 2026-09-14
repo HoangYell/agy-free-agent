@@ -38,6 +38,7 @@ Yet almost every developer already possesses **2 to 5 standard Google accounts**
 * **📂 Canonical Workspace Standard (`~/workspaces`)**: Safe, structured workspace routing automatically trusted in agent permissions.
 * **⏰ Autonomous Scheduling (Cron & Systemd)**: Run automated background reviews, overnight issue triaging, and CI verification while you sleep.
 * **🔒 Isolated Auth Storage**: Google session tokens are compartmentalized per profile inside `~/.gemini-profiles/acc<N>/` via `bwrap`, while host tools (`git`, `ssh`, `docker`) remain natively accessible.
+* **📱 Ubiquitous Remote Access**: Command your agent anywhere via **Tailscale Mesh VPN** and **Termius** on mobile, with async alerts delivered straight to **Telegram**.
 * **🛡️ Clean-Room Pre-Flight Shield**: Built-in `cleanroom-guard` verifies that no private keys, passwords, or credentials can ever be committed to Git.
 
 ---
@@ -123,6 +124,7 @@ Each command generates an isolated launcher (`agy2`, `agy3`) and pre-configures 
 | **`agy-setup <N>`** | Provision and configure a new isolated profile for account `<N>`. |
 | **`q`** | Check live quota status, OAuth session validity, and running PIDs across all accounts. |
 | **`agy-clean-logs`** | Prune stale session logs (>7 days) and vacuum journalctl storage. |
+| **`telegram-notify`** | Dispatch real-time task alerts or status updates to Telegram. |
 | **`cleanroom-guard`** | Audit staged git files for potential secret, token, or private key leaks. |
 
 ---
@@ -219,6 +221,63 @@ systemctl --user enable --now agy-watchdog.timer
 
 ---
 
+## 📱 Ubiquitous Access: Tailscale, Termius & Telegram
+
+Turn your Linux machine into an autonomous engineering station you can command from anywhere in the world—from an iPad at a coffee shop or an iPhone on the subway.
+
+```mermaid
+flowchart LR
+    subgraph Mobile["Mobile Access (Anywhere)"]
+        Phone["iPhone / Android / iPad<br/>(Termius App)"]
+        TG["Telegram App<br/>(Push Notifications & Alerts)"]
+    end
+
+    subgraph Mesh["Encrypted Private Mesh"]
+        TS["Tailscale Mesh VPN<br/>(Zero Port Forwarding)"]
+    end
+
+    subgraph Host["Your Linux Host / Server"]
+        Agy["AgyFreeAgent Swarm<br/>(agy1..agyn, tmux)"]
+        Notifier["telegram-notify<br/>(Automated Alerts)"]
+    end
+
+    Phone -->|Secure Tailscale SSH| TS --> Agy
+    Agy --> Notifier --> TG
+```
+
+### 1. Tailscale: Zero-Port-Forwarding Private Mesh
+Never expose your server's SSH ports to the public internet. Tailscale creates an encrypted peer-to-peer WireGuard mesh across your personal devices:
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --ssh
+```
+Your machine is now securely accessible from your phone, laptop, or tablet via its private Tailscale IP or MagicDNS hostname (e.g. `ssh user@my-server`).
+
+### 2. Termius: The Pocket AI Engineer (iOS / Android)
+**Termius** is the gold-standard mobile terminal client for developers on the go:
+* **One-Tap Snippets**: Save shortcuts for `q` (check quota status), `agy1`, and `tmux attach -t agy`.
+* **Persistent Sessions**: Run your agent inside `tmux` or `screen`. Close your phone, put it in your pocket, and your agent continues autonomous task execution uninterrupted.
+* **On-the-Go Swarm Monitoring**: Check model quotas across all profiles or trigger a background build in seconds from anywhere.
+
+### 3. Telegram: Real-Time Alerts & Task Notifications
+Receive instant push notifications when long-running agent tasks complete, builds finish, or errors occur:
+1. Create a bot with [@BotFather](https://t.me/BotFather) and get your chat ID via [@userinfobot](https://t.me/userinfobot).
+2. Set your environment variables (in `~/.bashrc` or your `.env` file):
+   ```bash
+   export TELEGRAM_BOT_TOKEN="your_bot_token_here"
+   export TELEGRAM_CHAT_ID="your_chat_id_here"
+   ```
+3. Dispatch alerts directly from agent tasks or bash commands:
+   ```bash
+   telegram-notify "🚀 Deploy Complete: Production build verified and healthy!"
+   ```
+4. Integrate with morning cronjobs:
+   ```bash
+   0 8 * * 1-5 ~/.local/bin/agy1 --prompt "Triage repo issues" | telegram-notify
+   ```
+
+---
+
 ## 📊 Comparison Matrix
 
 | Feature | AgyFreeAgent | Claude Code | OpenAI Codex | OpenClaw | Hermes Agent |
@@ -231,6 +290,7 @@ systemctl --user enable --now agy-watchdog.timer
 | **System Admin (`sudo`)** | **Full (`sudo all`)** | Interactive prompts | Sandboxed | Partial / Container | Terminal restricted |
 | **Quota Telemetry** | **One-key (`q`)** | CLI statusline | Web portal | Basic CLI | None |
 | **Background Daemons** | **Systemd & Cron** | Interactive CLI | Webhooks | Docker Daemon | Gateway / Cron |
+| **Remote Ops (Mobile)** | **Tailscale + Termius + TG** | SSH only | Cloud web only | Self-hosted Web | Telegram Gateway |
 | **Real Visual Test** | **Native Chrome CDP** | Headless MCP | Headless Snapshot | No | No |
 
 ---

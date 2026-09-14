@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# AgyFreeAgent - CLI shortcut for Telegram notifications
+# ==============================================================================
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)/telegram-notify.sh" "$@"
